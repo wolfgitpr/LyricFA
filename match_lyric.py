@@ -69,7 +69,8 @@ def match_lyric(
     for lab_path in asr_lab:
         file_num += 1
         lab_name = os.path.splitext(os.path.basename(lab_path))[0]
-        lyric_name = os.path.splitext(os.path.basename(lab_path))[0].split('_')[0]
+        lyric_name = os.path.splitext(os.path.basename(lab_path))[0]
+        lyric_name = lyric_name.rsplit("_", 1)[0]
         if lyric_name in lyric_dict.keys():
             with open(lab_path, 'r', encoding='utf-8') as f:
                 lab_content = f.read()

@@ -7,12 +7,13 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 ## How to use
 
 1. Install
-    Asr model from: https://github.com/RapidAI/RapidASR
-    1. 安装`rapid_paraformer`
+    + Asr model from: https://github.com/RapidAI/RapidASR
+
+    1. Install `rapid_paraformer`
         ```bash
         pip install rapid_paraformer
         ```
-    2. 下载**resources.zip
+    2. Download **resources.zip
        ** ([Google Drive](https://drive.google.com/drive/folders/1RVQtMe0eB_k6G5TJlmXwPELx4VtF2oCw?usp=sharing) | [百度网盘](https://pan.baidu.com/s/1zf8Ta6QxFHY3Z75fHNYKrQ?pwd=6ekq))
         ```bash
         resources
@@ -29,18 +30,21 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
        ```bash
        lyric
        ├── chuanqi.txt
-       ├── caocao.lrc
+       ├── caocao.txt
        └── ...
         ```
-       
-    2. Place the cut file fragments in the wav folder. Unify the file name with the previous lyrics: [lyricName].wav
+
+    2. Place the cut file fragments in the wav folder. Unify the file name with the previous lyrics: [lyricName]_xxx.wav.
+   
+       If there are multiple '_' in the file name, Take the far right as the dividing line. The file name in the left
+       half must be the same as the lyrics file name in the previous step.
        ```bash
        wav
        ├── caocao_001.wav
        ├── caocao_002.wav
        └── ...
         ```
-       
+
     3. Run rapid_asr.py obtains the lab results of asr.
         ```bash
        python rapid_asr.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
@@ -50,7 +54,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
            --wav_folder     Sliced wav file folder (*.wav).
            --lab_folder     Folder for outputting lab files.       
        ```
-       
+
     4. Run match_lyric.py obtains JSON and put it in the annotation folder of Minlabel.
        ```bash
        python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
