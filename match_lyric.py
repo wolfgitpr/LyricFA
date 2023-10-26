@@ -13,21 +13,6 @@ def get_lyrics_from_txt(file_path):
     return text
 
 
-def get_lyrics_from_lrc(file_path):
-    lyrics = []
-
-    with open(file_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-
-        for line in lines:
-            line = line.strip()
-            if line.startswith("["):
-                _, lyric = line.split("]", 1)
-                lyrics.append(lyric.strip('\n'))
-
-    return " ".join(lyrics)
-
-
 def find_best_matches(source_list, sub_list):
     max_match_length = 0
     max_match_index = -1
@@ -56,7 +41,7 @@ def generate_json(json_path, _text, _pinyin):
 
 @click.command(help='Match the original lyrics based on the ASR results and generate JSON for preloading by Minlabel')
 @click.option('--lyric_folder',
-              metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt, *.lrc).')
+              metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).')
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
 def match_lyric(
@@ -74,10 +59,7 @@ def match_lyric(
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt') + glob.glob(f'{lyric_folder}/*.lrc')
     for lyric_path in lyric_paths:
         lyric_name = os.path.splitext(os.path.basename(lyric_path))[0]
-        if lyric_path.endswith(".txt"):
-            text_list = g2p.split_string(get_lyrics_from_txt(lyric_path))
-        else:
-            text_list = g2p.split_string(get_lyrics_from_lrc(lyric_path))
+        text_list = g2p.split_string(get_lyrics_from_txt(lyric_path))
         lyric_dict[lyric_name] = {'text_list': text_list, 'pinyin': g2p.convert_list(text_list)}
 
     file_num = 0

@@ -56,7 +56,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
        python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
        
        Option:
-           --model_config   The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt, *.lrc).
+           --model_config   The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).
            --lab_folder     Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).
            --json_folder     Folder for outputting JSON files.       
        ```
