@@ -34,13 +34,21 @@ def rapid_asr(
 
     time_count = 0
     for wav_path in wav_list:
-        time_count += librosa.get_duration(filename=wav_path)
-        y, sr = librosa.load(wav_path, sr=16000, mono=True)
-        result = paraformer(y[None, ...])[0]
-        print(f"{wav_path}\n{result}\n")
         wav_name = os.path.splitext(os.path.basename(wav_path))[0]
-        with open(f'{lab_folder}/{wav_name}.lab', 'w') as f:
-            f.write(g2p.convert_string(result))
+        out_lab_path = f'{lab_folder}/{wav_name}.lab'
+        if not os.path.exists(out_lab_path):
+            time_count += librosa.get_duration(filename=wav_path)
+            y, sr = librosa.load(wav_path, sr=16000, mono=True)
+            result = paraformer(y[None, ...])
+            if result:
+                result = result[0]
+                print(f"{wav_path}\n{result}\n")
+                with open(out_lab_path, 'w') as f:
+                    f.write(g2p.convert_string(result))
+            else:
+                print(f"{wav_path}:error\n")
+        else:
+            print(f"{out_lab_path} exists, skip\n")
 
     end_time = time.time()
     elapsed_seconds = end_time - start_time
