@@ -9,8 +9,9 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 1. Install
     + Asr model from: https://github.com/RapidAI/RapidASR
 
-    1. Install `rapid_paraformer`
+    1. Install `rapid_paraformer` (Chinese)
         ```bash
+        pip install requirements.txt
         pip install rapid_paraformer
         ```
     2. Download **resources.zip
@@ -23,6 +24,12 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
             ├── [824M]  asr_paraformerv2.onnx
             └── [ 50K]  token_list.pkl
         ```
+
+   3. Install `requirements` Japanese (optional)
+        ```bash
+        pip install requirements_jp.txt
+        ```
+
 2. Collect lyric
     1. Collect the original lyrics text and place it in the Lyric folder. The content is pure lyrics, and the file name
        is consistent with the audio before the AudioSlicer slicing (i.e. the part before the file name '_' after
@@ -34,8 +41,9 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
        └── ...
         ```
 
-    2. Place the cut file fragments in the wav folder. Unify the file name with the previous lyrics: [lyricName]_xxx.wav.
-   
+    2. Place the cut file fragments in the wav folder. Unify the file name with the previous lyrics: [lyricName]_
+       xxx.wav.
+
        If there are multiple '_' in the file name, Take the far right as the dividing line. The file name in the left
        half must be the same as the lyrics file name in the previous step.
        ```bash
@@ -47,7 +55,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
     3. Run rapid_asr.py obtains the lab results of asr.
         ```bash
-       python rapid_asr.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
+       python rapid_asr.py/rapid_asr_jp.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
        
        Option:
            --model_config   sample:resources/config.yaml Download from: https://github.com/RapidAI/RapidASR/blob/main/python/README.md
@@ -57,7 +65,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
     4. Run match_lyric.py obtains JSON and put it in the annotation folder of Minlabel.
        ```bash
-       python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
+       python match_lyric.py/match_lyric_jp.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
        
        Option:
            --lyric_folder   The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).
@@ -75,4 +83,8 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
 + [cc-edict](https://cc-cedict.org/wiki/)
   The dictionary source.
+
++ [mecab-python3](https://github.com/SamuraiT/mecab-python3)
+
++ [unidic-lite](https://github.com/polm/unidic-lite)
 
