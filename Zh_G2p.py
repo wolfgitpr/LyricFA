@@ -130,8 +130,7 @@ class ZhG2p:
                     if 0 <= cursor + 1 - length < cursor + 1 and not found and cursor < len(input_list):
                         x_sub_phrase = ''.join(input_list[cursor + 1 - length:cursor + 1])
                         if x_sub_phrase in self.PhrasesDict:
-                            pos = x_sub_phrase.rfind(current_char)
-                            self.remove_elements(result, cursor + 1 - length, pos)
+                            self.remove_elements(result, cursor + 1 - length, length - 1)
                             self.add_string(self.PhrasesDict[x_sub_phrase], result)
                             cursor += 1
                             found = True
@@ -139,8 +138,7 @@ class ZhG2p:
                     if 0 <= cursor + 2 - length < cursor + 2 and not found and cursor < len(input_list):
                         x_sub_phrase = ''.join(input_list[cursor + 2 - length:cursor + 2])
                         if x_sub_phrase in self.PhrasesDict:
-                            pos = x_sub_phrase.rfind(current_char)
-                            self.remove_elements(result, cursor + 2 - length, pos)
+                            self.remove_elements(result, cursor + 2 - length, length - 2)
                             self.add_string(self.PhrasesDict[x_sub_phrase], result)
                             cursor += 2
                             found = True

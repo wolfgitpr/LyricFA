@@ -34,10 +34,10 @@ def rapid_asr(
 
     time_count = 0
     for wav_path in wav_list:
+        time_count += librosa.get_duration(filename=wav_path)
         wav_name = os.path.splitext(os.path.basename(wav_path))[0]
         out_lab_path = f'{lab_folder}/{wav_name}.lab'
         if not os.path.exists(out_lab_path):
-            time_count += librosa.get_duration(filename=wav_path)
             y, sr = librosa.load(wav_path, sr=16000, mono=True)
             result = paraformer(y[None, ...])
             if result:
@@ -54,8 +54,8 @@ def rapid_asr(
     elapsed_seconds = end_time - start_time
     print("---------------")
     print("Done!")
-    print(f"Wav time: {time_count:.3f} s")
-    print(f"Asr cost time: {elapsed_seconds:.3f} s")
+    print(f"RTF: {elapsed_seconds / time_count:.3f}x")
+    print(f"Wav time: {time_count:.3f}s")
 
 
 if __name__ == '__main__':
