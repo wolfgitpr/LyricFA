@@ -2,9 +2,10 @@ import glob
 import json
 import os
 
+import MeCab
 import click
 
-from ZhG2p import ZhG2p
+from JpG2p import JpG2p
 
 
 def get_lyrics_from_txt(file_path):
@@ -53,14 +54,16 @@ def match_lyric(
     assert json_folder is not None, 'JSON output folder not entered.'
     os.makedirs(json_folder, exist_ok=True)
 
-    g2p = ZhG2p('mandarin')
+    g2p = JpG2p()
+    mecab_tagger = MeCab.Tagger()
     lyric_dict = {}
 
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
     for lyric_path in lyric_paths:
         lyric_name = os.path.splitext(os.path.basename(lyric_path))[0]
-        text_list = g2p.split_string(get_lyrics_from_txt(lyric_path))
-        lyric_dict[lyric_name] = {'text_list': text_list, 'pinyin': g2p.convert_list(text_list)}
+        mecab_res = mecab_tagger.parse(get_lyrics_from_txt(lyric_path)).split('\n')[:-2]
+        lyric_dict[lyric_name] = {'text_list': [x.split('\t')[0] for x in mecab_res],
+                                  'kana': [x.split('\t')[1] for x in mecab_res]}
 
     file_num = 0
     success_num = 0
@@ -75,12 +78,16 @@ def match_lyric(
             with open(lab_path, 'r', encoding='utf-8') as f:
                 lab_content = f.read()
             text_list = lyric_dict[lyric_name]['text_list']
-            pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
-            pos = find_best_matches(pinyin_list, g2p.convert_string(lab_content).split(' '))
+            kana_list = lyric_dict[lyric_name]['kana']
+            lab_res = mecab_tagger.parse(lab_content.replace(" ", "")).split('\n')[:-2]
+            lab_kana = [x.split('\t')[1] for x in lab_res]
+            pos = find_best_matches(kana_list, lab_kana)
+            print(kana_list)
+            print(lab_kana)
 
-            match_text = " ".join(text_list[pos[0]:pos[1]])
-            match_pinyin = g2p.convert_list(match_text.split(' '))
-            generate_json(f'{json_folder}/{lab_name}.json', match_text, match_pinyin)
+            match_text = "".join(text_list[pos[0]:pos[1]])
+            clean_kana = g2p.split_string("".join(lab_kana))
+            generate_json(f'{json_folder}/{lab_name}.json', match_text, g2p.kana_to_romaji(clean_kana))
             success_num += 1
         else:
             if lyric_name not in miss_lyric:

@@ -4,9 +4,8 @@ import time
 
 import click
 import librosa
-from rapid_paraformer import RapidParaformer
-
-from ZhG2p import ZhG2p
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
 
 
 @click.command(help='Asr outputs lab annotations to match the original lyrics.')
@@ -23,8 +22,9 @@ def rapid_asr(
     assert wav_folder is not None and lab_folder is not None, 'wav input folder or lab output folder not entered.'
     os.makedirs(lab_folder, exist_ok=True)
 
-    paraformer = RapidParaformer(model_config)
-    g2p = ZhG2p("mandarin")
+    inference_pipeline = pipeline(
+        task=Tasks.auto_speech_recognition,
+        model='damo/speech_UniASR_asr_2pass-ja-16k-common-vocab93-tensorflow1-offline')
 
     print("Started!")
     print("---------------")
@@ -39,12 +39,12 @@ def rapid_asr(
         out_lab_path = f'{lab_folder}/{wav_name}.lab'
         if not os.path.exists(out_lab_path):
             y, sr = librosa.load(wav_path, sr=16000, mono=True)
-            result = paraformer(y[None, ...])
+            result = inference_pipeline(y, param_dict={"decoding_model": "normal"})
             if result:
-                result = result[0]
+                result = result['text']
                 print(f"{wav_path}\n{result}\n")
                 with open(out_lab_path, 'w', encoding='utf-8') as f:
-                    f.write(g2p.convert_string(result))
+                    f.write(result)
             else:
                 print(f"{wav_path}:error\n")
         else:

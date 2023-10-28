@@ -1,0 +1,6 @@
+click
+librosa<0.10.0
+numpy==1.23.5
+modelscope
+mecab-python3
+unidic-lite
