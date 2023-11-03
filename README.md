@@ -11,7 +11,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
     1. Install `rapid_paraformer` (Chinese)
         ```bash
-        pip install requirements.txt
+        pip install -r requirements.txt
         pip install rapid_paraformer
         ```
     2. Download **resources.zip
@@ -27,7 +27,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
    3. Install `requirements` Japanese (optional)
         ```bash
-        pip install requirements_jp.txt
+        pip install -r requirements_jp.txt
         ```
 
 2. Collect lyric
