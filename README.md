@@ -55,7 +55,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
     3. Run rapid_asr.py obtains the lab results of asr.
         ```bash
-       python rapid_asr.py/rapid_asr_jp.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
+       python rapid_asr.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
        
        Option:
            --model_config   sample:resources/config.yaml Download from: https://github.com/RapidAI/RapidASR/blob/main/python/README.md
@@ -65,7 +65,7 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
     4. Run match_lyric.py obtains JSON and put it in the annotation folder of Minlabel.
        ```bash
-       python match_lyric.py/match_lyric_jp.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
+       python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
        
        Option:
            --lyric_folder   The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).
