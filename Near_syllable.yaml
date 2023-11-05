@@ -1,4 +1,5 @@
 dictionary_path: dictionaries/opencpop-extension.txt
+dictionary_path_jp: dictionaries/japanese_dict_full.txt
 
 syllable:
   hang: fang

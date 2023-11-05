@@ -81,9 +81,9 @@ class LevenshteinDistance:
         pos = self.find_best_matches(pinyin_list, target)
         slider_res = pinyin_list[pos[0]:pos[1]]
         if slider_res == target:
-            return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), pos[2]
-        elif slider_res[0] == target[0] and slider_res[-1] == target[-1] and len(pos[2]) <= 2:
-            return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), pos[2]
+            return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), " ".join(pos[2])
+        elif len(slider_res) > 0 and slider_res[0] == target[0] and slider_res[-1] == target[-1] and len(pos[2]) <= 2:
+            return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), " ".join(pos[2])
 
         similar_substrings = []
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     text_content = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心"
     lab_content = "xi lan ren zen ha ha shuo we dou bu jie"
 
-    LD_Match = LevenshteinDistance(load_yaml=True, consonant=True)
+    LD_Match = LevenshteinDistance(yaml_path=True, consonant=True)
     text, res, step = LD_Match.find_similar_substrings(lab_content.split(" "), lyric_pinyin_list.split(" "),
                                                        text_list=text_content.split(" "), sub_tip=True)
 
