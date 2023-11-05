@@ -3,6 +3,7 @@ import json
 import os
 
 import click
+import pypinyin
 
 from ZhG2p import ZhG2p
 from common import LevenshteinDistance
@@ -27,6 +28,7 @@ def generate_json(json_path, _text, _pinyin):
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
 @click.option('--diff_threshold', default=0, metavar='Only display different results with n words or more.')
+@click.option('--asr_rectify', is_flag=False, metavar='Whether to rectify the ASR results.')
 @click.option('--syllable_neglect',
               metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 @click.option('--consonant_neglect',
@@ -38,6 +40,7 @@ def match_lyric(
         lab_folder: str = None,
         json_folder: str = None,
         diff_threshold: int = 0,
+        asr_rectify: bool = False,
         syllable_neglect: bool = False,
         consonant_neglect: bool = False,
         vowel_neglect: bool = False
@@ -69,16 +72,31 @@ def match_lyric(
         lyric_name = lyric_name.rsplit("_", 1)[0]
         if lyric_name in lyric_dict.keys():
             with open(lab_path, 'r', encoding='utf-8') as f:
-                lab_content = f.read()
+                asr_list = f.read().strip("\n").split(" ")
             text_list = lyric_dict[lyric_name]['text_list']
             pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
-            if len(g2p.convert_string(lab_content).split(' ')) > 0:
+            if len(g2p.convert_list(asr_list).split(' ')) > 0:
                 match_text, match_pinyin, step = ld_match.find_similar_substrings(
-                    g2p.convert_string(lab_content).split(' '), pinyin_list,
+                    g2p.convert_list(asr_list).split(' '), pinyin_list,
                     text_list=text_list, del_tip=True, ins_tip=True, sub_tip=True)
-                if lab_content != match_pinyin and len(step.split(" ")) > diff_threshold:
+                asr_rectify = []
+                for _asr, _text, _g2p in zip(asr_list, match_text.split(" "),
+                                             match_pinyin.split(" ")):
+                    if _asr != _g2p:
+                        candidate = pypinyin.pinyin(_text, style=pypinyin.Style.NORMAL, heteronym=True)[0]
+                        if _asr in candidate:
+                            asr_rectify.append(_asr)
+                        else:
+                            asr_rectify.append(_g2p)
+                    elif _asr == _g2p:
+                        asr_rectify.append(_asr)
+
+                if asr_rectify:
+                    match_pinyin = " ".join(asr_rectify)
+
+                if asr_list != match_pinyin.split(" ") and len(step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
-                    print("asr_labc:", lab_content)
+                    print("asr_lab:", " ".join(asr_list))
                     print("text_res:", match_text)
                     print("pyin_res:", match_pinyin)
                     print("step:", step)
