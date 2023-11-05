@@ -1,0 +1,12 @@
+dictionary_path: dictionaries/opencpop-extension.txt
+
+syllable:
+  hang: fang
+
+consonant:
+  l: n
+  n: l
+
+vowel:
+  an: en
+

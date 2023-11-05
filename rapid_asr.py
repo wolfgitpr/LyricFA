@@ -54,7 +54,8 @@ def rapid_asr(
     elapsed_seconds = end_time - start_time
     print("---------------")
     print("Done!")
-    print(f"RTF: {elapsed_seconds / time_count:.3f}x")
+    if time_count != 0:
+        print(f"RTF: {elapsed_seconds / time_count:.3f}x")
     print(f"Wav time: {time_count:.3f}s")
 
 

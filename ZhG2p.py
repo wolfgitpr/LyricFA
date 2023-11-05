@@ -77,10 +77,13 @@ class ZhG2p:
             count_to_remove = min(n, len(lst) - start)
             del lst[start:start + count_to_remove]
 
-    def zh_position(self, input, res, positions):
+    def zh_position(self, input, res, positions, convert_num):
         for i, val in enumerate(input):
             if val in self.WordDict or val in self.TransDict:
                 res.append(val)
+                positions.append(i)
+            elif convert_num and val in self.NumMap:
+                res.append(self.NumMap[val])
                 positions.append(i)
 
     def convert_string(self, input, tone=False, convert_num=False):
@@ -89,17 +92,13 @@ class ZhG2p:
     def convert_list(self, input, tone=False, convert_num=False):
         input_list = []
         input_pos = []
-        self.zh_position(input, input_list, input_pos)
+        self.zh_position(input, input_list, input_pos, convert_num)
         result = []
         cursor = 0
 
         while cursor < len(input_list):
             raw_current_char = input_list[cursor]
             current_char = self.trad_to_sim(raw_current_char)
-
-            if convert_num and current_char in self.NumMap:
-                result.append(self.NumMap[current_char])
-                cursor += 1
 
             if current_char not in self.WordDict:
                 result.append(current_char)
@@ -138,7 +137,7 @@ class ZhG2p:
                     if 0 <= cursor + 2 - length < cursor + 2 and not found and cursor < len(input_list):
                         x_sub_phrase = ''.join(input_list[cursor + 2 - length:cursor + 2])
                         if x_sub_phrase in self.PhrasesDict:
-                            self.remove_elements(result, cursor + 2 - length, length - 2)
+                            self.remove_elements(result, cursor + 2 - length, length - 1)
                             self.add_string(self.PhrasesDict[x_sub_phrase], result)
                             cursor += 2
                             found = True

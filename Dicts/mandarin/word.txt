@@ -45,7 +45,7 @@
 干:gan1
 二:er4
 净:jing4
-了:le1
+了:le5
 百:bai3
 事:shi4
 无:wu2
@@ -261,7 +261,7 @@
 风:feng1
 顺:shun4
 席:xi2
-地:de1
+地:de5
 带:dai4
 路:lu4
 过:guo4
@@ -391,7 +391,7 @@
 根:gen1
 筋:jin1
 绳:sheng2
-的:de1
+的:de5
 蚂:ma3
 蚱:zha5
 杆:gan3
@@ -515,7 +515,7 @@
 莫:mo4
 箩:luo2
 筐:kuang1
-系:xi4
+系:ji4
 列:lie4
 纸:zhi3
 级:ji2
@@ -3181,7 +3181,7 @@
 刴:duo4
 刵:er4
 踏:ta4
-呢:ne1
+呢:ne5
 屏:ping2
 李:li3
 戳:chuo1
@@ -17505,5 +17505,12 @@
 龗:ling2
 龞:bie1
 龣:jue2
+鿃:shan3
+鿍:gang4
+鿎:ta3
+鿏:mai4
+鿕:dan1
+鿫:ao4
+鿬:tian2
 濛:meng2
 尅:kei2
