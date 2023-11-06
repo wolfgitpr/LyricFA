@@ -58,19 +58,24 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
        python rapid_asr.py --model_config resources/config.yaml --wav_folder wav_folder --lab_folder lab_folder
        
        Option:
-           --model_config   sample:resources/config.yaml Download from: https://github.com/RapidAI/RapidASR/blob/main/python/README.md
-           --wav_folder     Sliced wav file folder (*.wav).
-           --lab_folder     Folder for outputting lab files.       
+           --model_config   str  sample:resources/config.yaml Download from: https://github.com/RapidAI/RapidASR/blob/main/python/README.md
+           --wav_folder     str  Sliced wav file folder (*.wav).
+           --lab_folder     str  Folder for outputting lab files.       
        ```
 
     4. Run match_lyric.py obtains JSON and put it in the annotation folder of Minlabel.
        ```bash
-       python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder
+       python match_lyric.py --lyric_folder lyric --lab_folder lab_folder --json_folder json_folder --asr_rectify True
        
        Option:
-           --lyric_folder   The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).
-           --lab_folder     Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).
-           --json_folder     Folder for outputting JSON files.       
+           --lyric_folder      str  The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).
+           --lab_folder        str  Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).
+           --json_folder       str  Folder for outputting JSON files.
+           --diff_threshold    int  Only display different results with n words or more.
+           --asr_rectify       bool Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a polyphonic character, it is considered a g2p error).
+           --syllable_neglect  bool Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.
+           --consonant_neglect bool Ignore consonant errors with similar pronunciations and refer to the Near_consonant.yaml file.
+           --vowel_neglect     bool vowel errors with similar pronunciations and refer to the Near_vowel.yaml file.  
        ```
 
 ## Open-source softwares used

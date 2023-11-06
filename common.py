@@ -70,24 +70,29 @@ class LevenshteinDistance:
         max_match_length = 0
         max_match_index = -1
 
-        text_diff = []
-        pinyin_diff = []
         for i in range(len(source_list)):
             match_length = 0
             j = 0
             while i + j < len(source_list) and j < len(sub_list):
                 if self.match_pinyin(source_list[i + j], sub_list[j]):
                     match_length += 1
-                else:
-                    text_diff.append(f"({text_list[i + j]}->{sub_list[j]})")
-                    pinyin_diff.append(f"({source_list[i + j]}->{sub_list[j]})")
                 j += 1
 
             if match_length > max_match_length:
                 max_match_length = match_length
                 max_match_index = i
 
-        return max_match_index, max_match_index + len(sub_list), text_diff, pinyin_diff
+        if max_match_length < len(sub_list):
+            max_match_length = len(sub_list)
+
+        text_diff = []
+        pinyin_diff = []
+        for k in range(0, len(sub_list)):
+            if not self.match_pinyin(source_list[max_match_index + k], sub_list[k]):
+                text_diff.append(f"({text_list[max_match_index + k]}->{sub_list[k]}, {k})")
+                pinyin_diff.append(f"({source_list[max_match_index + k]}->{sub_list[k]}, {k})")
+
+        return max_match_index, max_match_index + max_match_length, text_diff, pinyin_diff
 
     def find_similar_substrings(self, target, pinyin_list, text_list=None, del_tip=False, ins_tip=False, sub_tip=False):
         if text_list is None:
@@ -119,14 +124,14 @@ class LevenshteinDistance:
     @staticmethod
     def fill_step_out(_step, del_tip, ins_tip, sub_tip):
         output = []
-        for x in _step:
+        for idx, x in enumerate(_step):
             if type(x) is tuple:
                 if x[0] != '' and x[1] == '' and del_tip:
-                    output.append(f"({x[0]}->)")
+                    output.append(f"({x[0]}->, {idx})")
                 elif x[0] == '' and x[1] != '' and ins_tip:
-                    output.append(f"(->{x[1]})")
+                    output.append(f"(->{x[1]}, {idx})")
                 elif x[0] != '' and x[1] != '' and sub_tip:
-                    output.append(f"({x[0]}->{x[1]})")
+                    output.append(f"({x[0]}->{x[1]}, {idx})")
         return " ".join(output)
 
     @staticmethod

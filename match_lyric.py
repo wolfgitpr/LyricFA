@@ -27,13 +27,14 @@ def generate_json(json_path, _text, _pinyin):
               metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).')
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
-@click.option('--diff_threshold', default=0, metavar='Only display different results with n words or more.')
-@click.option('--asr_rectify', is_flag=False, metavar='Whether to rectify the ASR results.')
-@click.option('--syllable_neglect',
+@click.option('--diff_threshold', type=int, default=0, metavar='Only display different results with n words or more.')
+@click.option('--asr_rectify', type=bool, default=False,
+              metavar='Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a polyphonic character, it is considered a g2p error).')
+@click.option('--syllable_neglect', type=bool,
               metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--consonant_neglect',
+@click.option('--consonant_neglect', type=bool,
               metavar='Ignore consonant errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--vowel_neglect',
+@click.option('--vowel_neglect', type=bool,
               metavar='Ignore vowel errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 def match_lyric(
         lyric_folder: str = None,
@@ -79,20 +80,22 @@ def match_lyric(
                 match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(
                     g2p.convert_list(asr_list).split(' '), pinyin_list,
                     text_list=text_list, del_tip=True, ins_tip=True, sub_tip=True)
-                asr_rectify = []
+                asr_rect_list = []
+                asr_rect_diff = []
                 for _asr, _text, _g2p in zip(asr_list, match_text.split(" "),
                                              match_pinyin.split(" ")):
                     if _asr != _g2p:
                         candidate = pypinyin.pinyin(_text, style=pypinyin.Style.NORMAL, heteronym=True)[0]
                         if _asr in candidate:
-                            asr_rectify.append(_asr)
+                            asr_rect_list.append(_asr)
+                            asr_rect_diff.append(f"({_g2p}->{_asr}, {asr_list.index(_asr)})")
                         else:
-                            asr_rectify.append(_g2p)
+                            asr_rect_list.append(_g2p)
                     elif _asr == _g2p:
-                        asr_rectify.append(_asr)
+                        asr_rect_list.append(_asr)
 
                 if asr_rectify:
-                    match_pinyin = " ".join(asr_rectify)
+                    match_pinyin = " ".join(asr_rect_list)
 
                 if asr_list != match_pinyin.split(" ") and len(pinyin_step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
@@ -101,8 +104,12 @@ def match_lyric(
                     print("pyin_res:", match_pinyin)
                     print("text_step:", text_step)
                     print("pyin_step:", pinyin_step)
+                    if asr_rectify and len(asr_rect_diff) > 0:
+                        print("asr_rect_diff:", " ".join(asr_rect_diff))
                     print("---------------")
                     diff_num += 1
+                assert len(match_text.split(" ")) == len(
+                    match_pinyin.split(" ")), f'length of match_text and match_pinyin not equal'
                 generate_json(f'{json_folder}/{lab_name}.json', match_text, match_pinyin)
                 success_num += 1
         else:
