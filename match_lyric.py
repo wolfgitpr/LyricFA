@@ -76,7 +76,7 @@ def match_lyric(
             text_list = lyric_dict[lyric_name]['text_list']
             pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
             if len(g2p.convert_list(asr_list).split(' ')) > 0:
-                match_text, match_pinyin, step = ld_match.find_similar_substrings(
+                match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(
                     g2p.convert_list(asr_list).split(' '), pinyin_list,
                     text_list=text_list, del_tip=True, ins_tip=True, sub_tip=True)
                 asr_rectify = []
@@ -94,12 +94,13 @@ def match_lyric(
                 if asr_rectify:
                     match_pinyin = " ".join(asr_rectify)
 
-                if asr_list != match_pinyin.split(" ") and len(step.split(" ")) > diff_threshold:
+                if asr_list != match_pinyin.split(" ") and len(pinyin_step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
                     print("asr_lab:", " ".join(asr_list))
                     print("text_res:", match_text)
                     print("pyin_res:", match_pinyin)
-                    print("step:", step)
+                    print("text_step:", text_step)
+                    print("pyin_step:", pinyin_step)
                     print("---------------")
                     diff_num += 1
                 generate_json(f'{json_folder}/{lab_name}.json', match_text, match_pinyin)

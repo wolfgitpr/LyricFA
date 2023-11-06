@@ -98,15 +98,18 @@ def match_lyric(
             lab_res = mecab_tagger.parse(lab_content.replace(" ", "")).split('\n')[:-2]
             lab_kana = [x.split('\t')[1] for x in lab_res]
             if len(lab_kana) > 0:
-                match_text, match_kana, step = ld_match.find_similar_substrings(lab_kana, kana_list,
-                                                                                text_list=text_list, del_tip=True,
-                                                                                ins_tip=True, sub_tip=True)
-                if lab_content != match_kana and len(step.split(" ")) > diff_threshold:
+                match_text, match_kana, text_step, kana_step = ld_match.find_similar_substrings(lab_kana, kana_list,
+                                                                                                text_list=text_list,
+                                                                                                del_tip=True,
+                                                                                                ins_tip=True,
+                                                                                                sub_tip=True)
+                if lab_content != match_kana and len(kana_step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
                     print("asr_labc:", " ".join(lab_kana))
                     print("text_res:", match_text)
                     print("kana_res:", match_kana)
-                    print("step:", step)
+                    print("text_step:", text_step)
+                    print("kana_step:", kana_step)
                     print("---------------")
                     diff_num += 1
                 generate_json(f'{json_folder}/{lab_name}.json', match_text, g2p.kana_to_romaji(match_kana))
