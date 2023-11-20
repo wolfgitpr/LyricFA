@@ -82,8 +82,10 @@ class LevenshteinDistance:
                 max_match_length = match_length
                 max_match_index = i
 
+        max_match_length = min(len(source_list) - max_match_index, len(sub_list))
         if max_match_length < len(sub_list):
-            max_match_length = len(sub_list)
+            max_match_index = max(0, max_match_index - (len(sub_list) - max_match_length))
+            max_match_length = min(len(source_list) - max_match_index, len(sub_list))
 
         text_diff = []
         pinyin_diff = []
@@ -97,6 +99,8 @@ class LevenshteinDistance:
     def find_similar_substrings(self, target, pinyin_list, text_list=None, del_tip=False, ins_tip=False, sub_tip=False):
         if text_list is None:
             text_list = pinyin_list
+        assert len(target) <= len(
+            pinyin_list), "The length of target must be less than or equal to the length of pinyin_list."
         assert len(text_list) == len(pinyin_list), "The length of text_list and pinyin_list must be the same."
         pos = self.find_best_matches(text_list, pinyin_list, target)
         slider_res = pinyin_list[pos[0]:pos[1]]
