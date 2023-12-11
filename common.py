@@ -16,6 +16,7 @@ def timer(func):
 
 class LevenshteinDistance:
     def __init__(self, load_yaml=False, syllable=False, consonant=False, vowel=False):
+        self.g2p = False
         self.syllable = syllable
         self.consonant = consonant
         self.vowel = vowel
@@ -34,36 +35,42 @@ class LevenshteinDistance:
         self.consonant_dict = data['consonant']
         self.vowel_dict = data['vowel']
 
-    def load_phoneme_dict(self, dict_path):
-        with open(dict_path, 'r') as file:
-            data = file.readlines()
-        for line in data:
-            k, v = line.strip("\n").split("\t")
-            self.phoneme_dict[k] = v.split(" ")
+    def load_phoneme_dict(self, dict_path=None):
+        if dict_path is not None:
+            self.g2p = True
+            with open(dict_path, 'r') as file:
+                data = file.readlines()
+            for line in data:
+                k, v = line.strip("\n").split("\t")
+                self.phoneme_dict[k] = v.split(" ")
 
     def match_pinyin(self, raw, target):
-        if raw == target:
-            return True
-        elif self.syllable and self.syllable_dict.get(raw, raw) == target:
-            return True
-        elif self.consonant:
-            raw = self.phoneme_dict.get(raw, raw)
-            target = self.phoneme_dict.get(target, target)
-            if len(raw) > 1 and len(target) > 1:
-                if self.consonant_dict.get(raw[0], raw[0]) == target[0] and raw[1] == target[1]:
-                    return True
-            elif len(raw) == 1 and len(target) == 1:
-                if raw[0] == target[0]:
-                    return True
-        elif self.vowel:
-            raw = self.phoneme_dict.get(raw, raw)
-            target = self.phoneme_dict.get(target, target)
-            if len(raw) > 1 and len(target) > 1:
-                if raw[0] == target[0] and self.vowel_dict.get(raw[1], raw[1]) == target[1]:
-                    return True
-            elif len(raw) == 1 and len(target) == 1:
-                if raw[0] == target[0]:
-                    return True
+        if self.g2p:
+            if raw == target:
+                return True
+            elif self.syllable and self.syllable_dict.get(raw, raw) == target:
+                return True
+            elif self.consonant:
+                raw = self.phoneme_dict.get(raw, raw)
+                target = self.phoneme_dict.get(target, target)
+                if len(raw) > 1 and len(target) > 1:
+                    if self.consonant_dict.get(raw[0], raw[0]) == target[0] and raw[1] == target[1]:
+                        return True
+                elif len(raw) == 1 and len(target) == 1:
+                    if raw[0] == target[0]:
+                        return True
+            elif self.vowel:
+                raw = self.phoneme_dict.get(raw, raw)
+                target = self.phoneme_dict.get(target, target)
+                if len(raw) > 1 and len(target) > 1:
+                    if raw[0] == target[0] and self.vowel_dict.get(raw[1], raw[1]) == target[1]:
+                        return True
+                elif len(raw) == 1 and len(target) == 1:
+                    if raw[0] == target[0]:
+                        return True
+        else:
+            if raw == target:
+                return True
         return False
 
     def find_best_matches(self, text_list, source_list, sub_list):

@@ -3,9 +3,8 @@ import json
 import os
 
 import click
-import pypinyin
 
-from ZhG2p import ZhG2p, split_string
+from ZhG2p import split_string
 from common import LevenshteinDistance
 
 
@@ -13,6 +12,25 @@ def get_lyrics_from_txt(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         text = file.read()
     return text
+
+
+def find_best_matches(source_list, sub_list):
+    max_match_length = 0
+    max_match_index = -1
+
+    for i in range(len(source_list)):
+        match_length = 0
+        j = 0
+        while i + j < len(source_list) and j < len(sub_list):
+            if source_list[i + j] == sub_list[j]:
+                match_length += 1
+            j += 1
+
+        if match_length > max_match_length:
+            max_match_length = match_length
+            max_match_index = i
+
+    return max_match_index, max_match_index + len(sub_list)
 
 
 def generate_json(json_path, _text, _pinyin):
@@ -27,21 +45,18 @@ def generate_json(json_path, _text, _pinyin):
               metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).')
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
-@click.option('--diff_threshold', type=int, default=0, metavar='Only display different results with n words or more.')
-@click.option('--asr_rectify', type=bool, default=False,
-              metavar='Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a polyphonic character, it is considered a g2p error).')
-@click.option('--syllable_neglect', type=bool,
+@click.option('--diff_threshold', default=0, metavar='Only display different results with n words or more.')
+@click.option('--syllable_neglect',
               metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--consonant_neglect', type=bool,
+@click.option('--consonant_neglect',
               metavar='Ignore consonant errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--vowel_neglect', type=bool,
+@click.option('--vowel_neglect',
               metavar='Ignore vowel errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 def match_lyric(
         lyric_folder: str = None,
         lab_folder: str = None,
         json_folder: str = None,
         diff_threshold: int = 0,
-        asr_rectify: bool = False,
         syllable_neglect: bool = False,
         consonant_neglect: bool = False,
         vowel_neglect: bool = False
@@ -50,21 +65,22 @@ def match_lyric(
     assert json_folder is not None, 'JSON output folder not entered.'
     os.makedirs(json_folder, exist_ok=True)
 
-    g2p = ZhG2p('mandarin')
     ld_match = LevenshteinDistance(load_yaml=True, syllable=syllable_neglect, consonant=consonant_neglect,
                                    vowel=vowel_neglect)
+    ld_match.load_phoneme_dict()
     lyric_dict = {}
 
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
     for lyric_path in lyric_paths:
         lyric_name = os.path.splitext(os.path.basename(lyric_path))[0]
-        text_list = split_string(get_lyrics_from_txt(lyric_path))
-        lyric_dict[lyric_name] = {'text_list': text_list, 'pinyin': g2p.convert_list(text_list)}
+        words = split_string(get_lyrics_from_txt(lyric_path).replace("’", "'").lower())
+        lyric_dict[lyric_name] = {'text_list': words,
+                                  'words': words}
 
     file_num = 0
     success_num = 0
-    miss_lyric = []
     diff_num = 0
+    miss_lyric = []
     asr_lab = glob.glob(f'{lab_folder}/*.lab')
     for lab_path in asr_lab:
         file_num += 1
@@ -73,44 +89,24 @@ def match_lyric(
         lyric_name = lyric_name.rsplit("_", 1)[0]
         if lyric_name in lyric_dict.keys():
             with open(lab_path, 'r', encoding='utf-8') as f:
-                asr_list = f.read().strip("\n").split(" ")
+                lab_content = f.read()
             text_list = lyric_dict[lyric_name]['text_list']
-            pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
-            if len(g2p.convert_list(asr_list).split(' ')) > 0:
-                match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(
-                    g2p.convert_list(asr_list).split(' '), pinyin_list,
-                    text_list=text_list, del_tip=True, ins_tip=True, sub_tip=True)
-                asr_rect_list = []
-                asr_rect_diff = []
-                for _asr, _text, _g2p in zip(asr_list, match_text.split(" "),
-                                             match_pinyin.split(" ")):
-                    if _asr != _g2p:
-                        candidate = pypinyin.pinyin(_text, style=pypinyin.Style.NORMAL, heteronym=True)[0]
-                        if _asr in candidate:
-                            asr_rect_list.append(_asr)
-                            asr_rect_diff.append(f"({_g2p}->{_asr}, {asr_list.index(_asr)})")
-                        else:
-                            asr_rect_list.append(_g2p)
-                    elif _asr == _g2p:
-                        asr_rect_list.append(_asr)
-
-                if asr_rectify:
-                    match_pinyin = " ".join(asr_rect_list)
-
-                if asr_list != match_pinyin.split(" ") and len(pinyin_step.split(" ")) > diff_threshold:
+            word_list = lyric_dict[lyric_name]['words']
+            lab_word = split_string(lab_content.replace("’", "'").lower())
+            if len(lab_word) > 0:
+                match_text, match_kana, text_step, kana_step = ld_match.find_similar_substrings(lab_word, word_list,
+                                                                                                text_list=text_list,
+                                                                                                del_tip=True,
+                                                                                                ins_tip=True,
+                                                                                                sub_tip=True)
+                if lab_content != match_kana and len(kana_step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
-                    print("asr_lab:", " ".join(asr_list))
+                    print("asr_labc:", " ".join(lab_word))
                     print("text_res:", match_text)
-                    print("pyin_res:", match_pinyin)
                     print("text_step:", text_step)
-                    print("pyin_step:", pinyin_step)
-                    if asr_rectify and len(asr_rect_diff) > 0:
-                        print("asr_rect_diff:", " ".join(asr_rect_diff))
                     print("---------------")
                     diff_num += 1
-                assert len(match_text.split(" ")) == len(
-                    match_pinyin.split(" ")), f'length of match_text and match_pinyin not equal'
-                generate_json(f'{json_folder}/{lab_name}.json', match_text, match_pinyin)
+                generate_json(f'{json_folder}/{lab_name}.json', match_text, match_kana)
                 success_num += 1
         else:
             if lyric_name not in miss_lyric:

@@ -4,14 +4,12 @@ import time
 
 import click
 import librosa
-from rapid_paraformer import RapidParaformer
-
-from ZhG2p import ZhG2p, split_string
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
 
 
 @click.command(help='Asr outputs lab annotations to match the original lyrics.')
-@click.option('--model_config',
-              metavar='sample:resources/config.yaml Download from: https://github.com/RapidAI/RapidASR/blob/main/python/README.md')
+@click.option('--model_config', metavar='Unused')
 @click.option('--wav_folder', metavar='Sliced wav file folder(*.wav).')
 @click.option('--lab_folder', metavar='Folder for outputting lab files.')
 def rapid_asr(
@@ -19,12 +17,12 @@ def rapid_asr(
         wav_folder: str = None,
         lab_folder: str = None
 ):
-    assert model_config is not None, 'sample:resources/config.yaml Download from:https://github.com/RapidAI/RapidASR/blob/main/python/README.md'
     assert wav_folder is not None and lab_folder is not None, 'wav input folder or lab output folder not entered.'
     os.makedirs(lab_folder, exist_ok=True)
 
-    paraformer = RapidParaformer(model_config)
-    g2p = ZhG2p("mandarin")
+    inference_pipeline = pipeline(
+        task=Tasks.auto_speech_recognition,
+        model='damo/speech_paraformer_asr-en-16k-vocab4199-pytorch')
 
     print("Started!")
     print("---------------")
@@ -39,12 +37,12 @@ def rapid_asr(
         out_lab_path = f'{lab_folder}/{wav_name}.lab'
         if not os.path.exists(out_lab_path):
             y, sr = librosa.load(wav_path, sr=16000, mono=True)
-            result = paraformer(y[None, ...])
+            result = inference_pipeline(y, param_dict={"decoding_model": "normal"})
             if result:
-                result = result[0]
+                result = result['text']
                 print(f"{wav_path}\n{result}\n")
                 with open(out_lab_path, 'w', encoding='utf-8') as f:
-                    f.write(g2p.convert(result))
+                    f.write(result)
             else:
                 print(f"{wav_path}:error\n")
         else:
