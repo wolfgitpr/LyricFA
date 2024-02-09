@@ -14,8 +14,8 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
         pip install -r requirements.txt
         pip install rapid_paraformer
         ```
-    2. Download **resources.zip
-       ** ([Google Drive](https://drive.google.com/drive/folders/1RVQtMe0eB_k6G5TJlmXwPELx4VtF2oCw?usp=sharing) | [百度网盘](https://pan.baidu.com/s/1zf8Ta6QxFHY3Z75fHNYKrQ?pwd=6ekq))
+    2. Download **resources.zip**
+       ([Google Drive](https://drive.google.com/drive/folders/1RVQtMe0eB_k6G5TJlmXwPELx4VtF2oCw?usp=sharing) | [百度网盘](https://pan.baidu.com/s/1zf8Ta6QxFHY3Z75fHNYKrQ?pwd=6ekq))
         ```bash
         resources
         ├── [ 700]  config.yaml
