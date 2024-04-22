@@ -4,6 +4,8 @@
 
 Using ASR to obtain syllables, matching text from lyrics, and generating JSON for Minlabel preloading.
 
+[cpp version](https://github.com/openvpi/dataset-tools/releases/)
+
 ## How to use
 
 1. Install
