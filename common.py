@@ -94,6 +94,10 @@ class LevenshteinDistance:
             max_match_index = max(0, max_match_index - (len(sub_list) - max_match_length))
             max_match_length = min(len(source_list) - max_match_index, len(sub_list))
 
+        if max_match_index == -1:
+            max_match_index = 0
+            max_match_length = sub_list.size()
+
         text_diff = []
         pinyin_diff = []
         for k in range(0, len(sub_list)):
