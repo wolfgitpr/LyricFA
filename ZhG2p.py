@@ -1,3 +1,33 @@
+# 映射表，音调符号 -> (无音调元音, 对应的调号)
+tone_to_num = {
+    'ā': ('a', '1'), 'á': ('a', '2'), 'ǎ': ('a', '3'), 'à': ('a', '4'),
+    'ō': ('o', '1'), 'ó': ('o', '2'), 'ǒ': ('o', '3'), 'ò': ('o', '4'),
+    'ē': ('e', '1'), 'é': ('e', '2'), 'ě': ('e', '3'), 'è': ('e', '4'),
+    'ī': ('i', '1'), 'í': ('i', '2'), 'ǐ': ('i', '3'), 'ì': ('i', '4'),
+    'ū': ('u', '1'), 'ú': ('u', '2'), 'ǔ': ('u', '3'), 'ù': ('u', '4'),
+    'ḿ': ('m', '2'), 'ǹ': ('n', '4'),
+    'ǖ': ('v', '1'), 'ǘ': ('v', '2'), 'ǚ': ('v', '3'), 'ǜ': ('v', '4'),
+    'ü': ('v', '')
+}
+
+
+def tone_to_normal(pinyin, v_to_u=False):
+    result = []
+
+    for ch in pinyin:
+        if 'a' <= ch <= 'z':
+            result.append(ch)
+        else:
+            result.append(tone_to_num.get(ch, (ch,))[0])  # 若找不到则保留原字符
+
+    result_str = ''.join(result)
+
+    if v_to_u:
+        result_str = result_str.replace('v', 'ü')
+
+    return result_str
+
+
 def is_letter(c):
     return ('a' <= c <= 'z') or ('A' <= c <= 'Z')
 
@@ -59,8 +89,8 @@ class ZhG2p:
 
         self.load_dict(dict_dir, "phrases_map.txt", self.PhrasesMap)
         self.load_dict_list(dict_dir, "phrases_dict.txt", self.PhrasesDict)
-        self.load_dict_list(dict_dir, "user_dict.txt", self.PhrasesDict)
-        self.load_dict(dict_dir, "word.txt", self.WordDict)
+        self.load_dict_list(dict_dir, "user_dict.txt", self.PhrasesDict, " ")
+        self.load_dict_list(dict_dir, "word.txt", self.WordDict)
         self.load_dict(dict_dir, "trans_word.txt", self.TransDict)
 
     @staticmethod
@@ -74,14 +104,14 @@ class ZhG2p:
                     _result_map[key] = value
 
     @staticmethod
-    def load_dict_list(_dict_dir, _file_name, _result_map):
+    def load_dict_list(_dict_dir, _file_name, _result_map, sep=','):
         dict_path = _dict_dir + "/" + _file_name
         with open(dict_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line:
-                    key, value = line.split(':')
-                    _result_map[key] = value.split(' ')
+                    key, value = line.split(':', 1)
+                    _result_map[key] = value.split(sep)
 
     NumMap = {
         "0": "零",
@@ -109,8 +139,33 @@ class ZhG2p:
             count_to_remove = min(n, len(lst) - start)
             del lst[start:start + count_to_remove]
 
+    @staticmethod
+    def split_string_no_re(input_str):
+        res = []
+        pos = 0
+
+        while pos < len(input_str):
+            current_char = input_str[pos]
+
+            if is_letter(current_char):
+                start = pos
+                while pos < len(input_str) and is_letter(input_str[pos]):
+                    pos += 1
+                res.append(input_str[start:pos])
+            elif is_hanzi(current_char) or current_char.isdigit():
+                res.append(input_str[pos])
+                pos += 1
+            elif is_kana(current_char):
+                length = 2 if pos + 1 < len(input_str) and is_special_kana(input_str[pos + 1]) else 1
+                res.append(input_str[pos:pos + length])
+                pos += length
+            else:
+                pos += 1
+
+        return res
+
     def convert(self, _input, tone=False, convert_num=False):
-        return self.convert_list(split_string(_input), tone, convert_num)
+        return self.convert_list(self.split_string_no_re(_input), tone, convert_num)
 
     def zh_position(self, _input, res, positions, convert_num):
         for i, val in enumerate(_input):
@@ -182,6 +237,8 @@ class ZhG2p:
         if not tone:
             result = [x[:-1] if x[-1].isdigit() else x for x in result]
 
+        result = [tone_to_normal(x) for x in result]
+
         return self.reset_zh(_input, result, input_pos)
 
     def is_polyphonic(self, text):
@@ -191,4 +248,7 @@ class ZhG2p:
         return self.TransDict[text] if text in self.TransDict else text
 
     def get_default_pinyin(self, text):
-        return self.WordDict[text] if text in self.WordDict else None
+        return self.WordDict[self.trad_to_sim(text)][0] if text in self.WordDict else None
+
+    def get_all_pinyin(self, text):
+        return self.WordDict[self.trad_to_sim(text)] if text in self.WordDict else None

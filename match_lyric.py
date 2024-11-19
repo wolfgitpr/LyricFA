@@ -24,12 +24,14 @@ def generate_json(json_path, _text, _pinyin):
 
 @click.command(help='Match the original lyrics based on the ASR results and generate JSON for preloading by Minlabel')
 @click.option('--lyric_folder',
-              metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed (*.txt).')
+              metavar='The file name corresponds to the lab prefix (before \'_\'), only pure lyrics are allowed ('
+                      '*.txt).')
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
 @click.option('--diff_threshold', type=int, default=0, metavar='Only display different results with n words or more.')
 @click.option('--asr_rectify', type=bool, default=False,
-              metavar='Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a polyphonic character, it is considered a g2p error).')
+              metavar='Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a '
+                      'polyphonic character, it is considered a g2p error).')
 @click.option('--syllable_neglect', type=bool,
               metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 @click.option('--consonant_neglect', type=bool,
@@ -88,7 +90,7 @@ def match_lyric(
                         candidate = pypinyin.pinyin(_text, style=pypinyin.Style.NORMAL, heteronym=True)[0]
                         if _asr in candidate:
                             asr_rect_list.append(_asr)
-                            asr_rect_diff.append(f"({_g2p}->{_asr}, {asr_list.index(_asr)})")
+                            asr_rect_diff.append(f"({_asr}->{_g2p}, {asr_list.index(_asr)})")
                         else:
                             asr_rect_list.append(_g2p)
                     elif _asr == _g2p:
