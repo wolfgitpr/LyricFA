@@ -1,254 +1,265 @@
 from typing import List, Tuple, Union, Optional
 
 
-class BestMatchResult:
-    def __init__(self, start_index: int, end_index: int, text_diff: List[str], pinyin_diff: List[str]):
-        self.start_index = start_index
-        self.end_index = end_index
-        self.text_diff = text_diff
-        self.pinyin_diff = pinyin_diff
+class AlignmentResult:
+    def __init__(self, start_idx: int, end_idx: int, text_changes: List[str], pronunciation_changes: List[str]):
+        self.start_idx = start_idx
+        self.end_idx = end_idx
+        self.text_changes = text_changes
+        self.pronunciation_changes = pronunciation_changes
 
 
-class LdRes:
-    def __init__(self, edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters):
+class AlignmentDetails:
+    def __init__(self, edit_distance, aligned_text, aligned_pronunciation, text_operations, pronunciation_operations):
         self.edit_distance = edit_distance
-        self.text_res = text_res
-        self.pinyin_res = pinyin_res
-        self.corresponding_texts = corresponding_texts
-        self.corresponding_characters = corresponding_characters
+        self.aligned_text = aligned_text
+        self.aligned_pronunciation = aligned_pronunciation
+        self.text_operations = text_operations
+        self.pronunciation_operations = pronunciation_operations
 
 
-class LevenshteinDistance:
+class LyricAligner:
     @staticmethod
-    def find_best_matches(
-            text_list: List[str],
-            source_list: List[str],
-            sub_list: List[str]
-    ) -> BestMatchResult:
-        max_match_length: int = 0
-        max_match_index: int = -1
+    def find_longest_match(
+            text_tokens: List[str],
+            pronunciation_sequence: List[str],
+            search_pronunciation: List[str]
+    ) -> AlignmentResult:
+        max_match_len = 0
+        best_start_idx = -1
 
-        for i in range(len(source_list)):
-            match_length: int = 0
-            j: int = 0
-            while i + j < len(source_list) and j < len(sub_list):
-                if source_list[i + j] == sub_list[j]:
-                    match_length += 1
-                j += 1
+        for start_idx in range(len(pronunciation_sequence)):
+            current_match_len = 0
+            for offset in range(min(len(search_pronunciation), len(pronunciation_sequence) - start_idx)):
+                if pronunciation_sequence[start_idx + offset] == search_pronunciation[offset]:
+                    current_match_len += 1
+                else:
+                    break
 
-            if match_length > max_match_length:
-                max_match_length = match_length
-                max_match_index = i
+            if current_match_len > max_match_len:
+                max_match_len = current_match_len
+                best_start_idx = start_idx
 
-        max_match_length = min(len(source_list) - max_match_index, len(sub_list))
-        if max_match_length < len(sub_list):
-            max_match_index = max(0, max_match_index - (len(sub_list) - max_match_length))
-            max_match_length = min(len(source_list) - max_match_index, len(sub_list))
+        # Ensure we have a valid match window
+        max_match_len = min(len(pronunciation_sequence) - best_start_idx, len(search_pronunciation))
+        if max_match_len < len(search_pronunciation):
+            best_start_idx = max(0, best_start_idx - (len(search_pronunciation) - max_match_len))
+            max_match_len = min(len(pronunciation_sequence) - best_start_idx, len(search_pronunciation))
 
-        if max_match_index == -1:
-            max_match_index = 0
-            max_match_length = len(sub_list)
+        if best_start_idx == -1:
+            best_start_idx = 0
+            max_match_len = len(search_pronunciation)
 
-        text_diff: List[str] = []
-        pinyin_diff: List[str] = []
-        for k in range(0, len(sub_list)):
-            if k < max_match_length and not source_list[max_match_index + k] == sub_list[k]:
-                text_diff.append(f"({text_list[max_match_index + k]}->{sub_list[k]}, {k})")
-                pinyin_diff.append(f"({source_list[max_match_index + k]}->{sub_list[k]}, {k})")
+        text_diffs = []
+        pronunciation_diffs = []
+        for pos in range(len(search_pronunciation)):
+            if pos < max_match_len and pronunciation_sequence[best_start_idx + pos] != search_pronunciation[pos]:
+                text_diffs.append(f"({text_tokens[best_start_idx + pos]}->{search_pronunciation[pos]}, {pos})")
+                pronunciation_diffs.append(
+                    f"({pronunciation_sequence[best_start_idx + pos]}->{search_pronunciation[pos]}, {pos})")
 
-        return BestMatchResult(
-            start_index=max_match_index,
-            end_index=max_match_index + max_match_length,
-            text_diff=text_diff,
-            pinyin_diff=pinyin_diff
+        return AlignmentResult(
+            start_idx=best_start_idx,
+            end_idx=best_start_idx + max_match_len,
+            text_changes=text_diffs,
+            pronunciation_changes=pronunciation_diffs
         )
 
-    def find_similar_substrings(
+    def align_sequences(
             self,
-            target: List[str],
-            pinyin_list: List[str],
-            text_list: Optional[List[str]] = None,
-            del_tip: bool = False,
-            ins_tip: bool = False,
-            sub_tip: bool = False
+            search_pronunciation: List[str],
+            reference_pronunciation: List[str],
+            text_tokens: Optional[List[str]] = None,
+            show_deletions: bool = False,
+            show_insertions: bool = False,
+            show_substitutions: bool = False
     ) -> Tuple[str, str, str, str]:
-        if text_list is None:
-            text_list = pinyin_list
-        assert len(target) <= len(
-            pinyin_list), "The length of target must be less than or equal to the length of pinyin_list."
-        assert len(text_list) == len(pinyin_list), "The length of text_list and pinyin_list must be the same."
-        match_result = self.find_best_matches(text_list, pinyin_list, target)
-        slider_res: List[str] = pinyin_list[match_result.start_index:match_result.end_index]
-        if len(slider_res) > 0 and (slider_res[0] == target[0] or slider_res[-1] == target[-1]) and len(
-                match_result.text_diff) <= 1:
+        if text_tokens is None:
+            text_tokens = reference_pronunciation
+        assert len(search_pronunciation) <= len(reference_pronunciation)
+        assert len(text_tokens) == len(reference_pronunciation)
+
+        initial_match = self.find_longest_match(text_tokens, reference_pronunciation, search_pronunciation)
+        matched_pronunciation = reference_pronunciation[initial_match.start_idx:initial_match.end_idx]
+
+        # Check if initial match is acceptable
+        if matched_pronunciation and (
+                matched_pronunciation[0] == search_pronunciation[0] or matched_pronunciation[-1] ==
+                search_pronunciation[-1]) and len(
+            initial_match.text_changes) <= 1:
             return (
-                " ".join(text_list[match_result.start_index:match_result.end_index]),
-                " ".join(pinyin_list[match_result.start_index:match_result.end_index]),
-                " ".join(match_result.text_diff),
-                " ".join(match_result.pinyin_diff)
+                " ".join(text_tokens[initial_match.start_idx:initial_match.end_idx]),
+                " ".join(reference_pronunciation[initial_match.start_idx:initial_match.end_idx]),
+                " ".join(initial_match.text_changes),
+                " ".join(initial_match.pronunciation_changes)
             )
 
-        ld_results: List[LdRes] = []
+        # Find the best alignment using edit distance
+        alignment_candidates = []
+        window_size = len(search_pronunciation)
 
-        # 扩展匹配范围，最多扩展10个字符
-        for sub_length in range(len(target), min(len(target) + 10, len(pinyin_list) + 1)):
-            # 滑动窗口，以预匹配的范围为中心，向两边扩展10个字符
-            for i in range(max(0, match_result.start_index - 10),
-                           min(match_result.end_index + 10, len(pinyin_list) - sub_length + 1)):
-                _pinyin_list = pinyin_list[i:i + sub_length]
-                _text_list = text_list[i:i + sub_length]
+        # Expand search window around initial match
+        for window in range(window_size, min(window_size + 10, len(reference_pronunciation) + 1)):
+            start_range = max(0, initial_match.start_idx - 10)
+            end_range = min(initial_match.end_idx + 10, len(reference_pronunciation) - window + 1)
 
-                ld_results.append(self.calculate_edit_distance(_text_list, _pinyin_list, target))
+            for start_idx in range(start_range, end_range):
+                window_pronunciation = reference_pronunciation[start_idx:start_idx + window]
+                window_text = text_tokens[start_idx:start_idx + window]
 
-        ld_results.sort(key=lambda _x: _x.edit_distance)
-        min_edit_distance_res = ld_results[0]
+                alignment_candidates.append(self.compute_alignment_details(
+                    window_text, window_pronunciation, search_pronunciation))
 
-        return (" ".join(min_edit_distance_res.text_res), " ".join(min_edit_distance_res.pinyin_res),
-                self.fill_step_out(min_edit_distance_res.corresponding_texts, del_tip, ins_tip, sub_tip),
-                self.fill_step_out(min_edit_distance_res.corresponding_characters, del_tip, ins_tip, sub_tip))
+        # Select best candidate
+        alignment_candidates.sort(key=lambda x: x.edit_distance)
+        best_alignment = alignment_candidates[0]
+
+        return (
+            " ".join(best_alignment.aligned_text),
+            " ".join(best_alignment.aligned_pronunciation),
+            self.format_operations(best_alignment.text_operations, show_deletions, show_insertions, show_substitutions),
+            self.format_operations(best_alignment.pronunciation_operations, show_deletions, show_insertions,
+                                   show_substitutions)
+        )
 
     @staticmethod
-    def fill_step_out(
-            _step: List[Union[str, Tuple[str, str]]],
-            del_tip: bool,
-            ins_tip: bool,
-            sub_tip: bool
+    def format_operations(
+            operations: List[Union[str, Tuple[str, str]]],
+            show_del: bool,
+            show_ins: bool,
+            show_sub: bool
     ) -> str:
-        output: List[str] = []
-        for idx, x in enumerate(_step):
-            if type(x) is tuple:
-                if x[0] != '' and x[1] == '' and del_tip:
-                    output.append(f"({x[0]}->, {idx})")
-                elif x[0] == '' and x[1] != '' and ins_tip:
-                    output.append(f"(->{x[1]}, {idx})")
-                elif x[0] != '' and x[1] != '' and sub_tip:
-                    output.append(f"({x[0]}->{x[1]}, {idx})")
-        return " ".join(output)
+        formatted_ops = []
+        for pos, op in enumerate(operations):
+            if isinstance(op, tuple):
+                original, replacement = op
+                if original and not replacement and show_del:
+                    formatted_ops.append(f"({original}->, {pos})")
+                elif not original and replacement and show_ins:
+                    formatted_ops.append(f"(->{replacement}, {pos})")
+                elif original and replacement and show_sub:
+                    formatted_ops.append(f"({original}->{replacement}, {pos})")
+        return " ".join(formatted_ops)
 
     @staticmethod
-    def initialize_dp_matrix(
-            m: int,
-            n: int,
-            del_cost: float,
-            ins_cost: float
-    ) -> List[List[float]]:
-        dp: List[List[float]] = [[0] * (n + 1) for _ in range(m + 1)]
+    def create_dp_table(
+            rows: int,
+            cols: int,
+            del_cost: int,
+            ins_cost: int
+    ) -> List[List[int]]:
+        dp = [[0] * (cols + 1) for _ in range(rows + 1)]
 
-        for i in range(m + 1):
-            dp[i][0] = i * del_cost  # 删除操作的权重
+        for i in range(rows + 1):
+            dp[i][0] = i * del_cost
 
-        for j in range(n + 1):
-            dp[0][j] = j * ins_cost  # 插入操作的权重
+        for j in range(cols + 1):
+            dp[0][j] = j * ins_cost
 
         return dp
 
     @staticmethod
-    def calculate_edit_distance_dp(
-            dp: List[List[float]],
-            substring: List[str],
+    def fill_dp_table(
+            dp: List[List[int]],
+            source: List[str],
             target: List[str],
-            del_cost: float,
-            ins_cost: float,
-            sub_cost: float
-    ) -> float:
-        m, n = len(substring), len(target)
+            del_cost: int,
+            ins_cost: int,
+            sub_cost: int
+    ) -> int:
+        rows, cols = len(source), len(target)
 
-        for i in range(1, m + 1):
-            for j in range(1, n + 1):
-                if substring[i - 1] == target[j - 1]:
+        for i in range(1, rows + 1):
+            for j in range(1, cols + 1):
+                if source[i - 1] == target[j - 1]:
                     dp[i][j] = dp[i - 1][j - 1]
                 else:
                     dp[i][j] = min(
-                        dp[i - 1][j - 1] + sub_cost,  # 替换操作的权重
-                        dp[i][j - 1] + ins_cost,  # 插入操作的权重
-                        dp[i - 1][j] + del_cost  # 删除操作的权重
+                        dp[i - 1][j - 1] + sub_cost,
+                        dp[i][j - 1] + ins_cost,
+                        dp[i - 1][j] + del_cost
                     )
 
-        return dp[m][n]
+        return dp[rows][cols]
 
     @staticmethod
-    def backtrack_corresponding(
+    def trace_alignment_path(
             dp: List[List[float]],
-            _text: List[str],
-            substring: List[str],
-            target: List[str]
+            text_tokens: List[str],
+            source_pronunciation: List[str],
+            target_pronunciation: List[str]
     ) -> Tuple[List[Union[str, Tuple[str, str]]], List[Union[str, Tuple[str, str]]]]:
-        corresponding_texts: List[Union[str, Tuple[str, str]]] = []
-        corresponding_characters: List[Union[str, Tuple[str, str]]] = []
-        i, j = len(substring), len(target)
+        text_ops = []
+        pronunciation_ops = []
+        i, j = len(source_pronunciation), len(target_pronunciation)
 
         while i > 0 and j > 0:
-            if substring[i - 1] == target[j - 1]:
-                corresponding_characters.insert(0, target[j - 1])
-                corresponding_texts.insert(0, _text[i - 1])
+            if source_pronunciation[i - 1] == target_pronunciation[j - 1]:
+                pronunciation_ops.insert(0, target_pronunciation[j - 1])
+                text_ops.insert(0, text_tokens[i - 1])
                 i -= 1
                 j -= 1
             else:
-                min_cost = min(
-                    dp[i - 1][j - 1],
-                    dp[i][j - 1],
-                    dp[i - 1][j]
-                )
-                if dp[i - 1][j - 1] == min_cost:
-                    corresponding_characters.insert(0, (substring[i - 1], target[j - 1]))
-                    corresponding_texts.insert(0, (_text[i - 1], target[j - 1]))
+                min_val = min(dp[i - 1][j - 1], dp[i][j - 1], dp[i - 1][j])
+                if dp[i - 1][j - 1] == min_val:
+                    pronunciation_ops.insert(0, (source_pronunciation[i - 1], target_pronunciation[j - 1]))
+                    text_ops.insert(0, (text_tokens[i - 1], target_pronunciation[j - 1]))
                     i -= 1
                     j -= 1
-                elif dp[i][j - 1] == min_cost:
-                    corresponding_characters.insert(0, ('', target[j - 1]))
-                    corresponding_texts.insert(0, ('', target[j - 1]))
+                elif dp[i][j - 1] == min_val:
+                    pronunciation_ops.insert(0, ('', target_pronunciation[j - 1]))
+                    text_ops.insert(0, ('', target_pronunciation[j - 1]))
                     j -= 1
                 else:
-                    corresponding_characters.insert(0, (substring[i - 1], ''))
-                    corresponding_texts.insert(0, (_text[i - 1], ''))
+                    pronunciation_ops.insert(0, (source_pronunciation[i - 1], ''))
+                    text_ops.insert(0, (text_tokens[i - 1], ''))
                     i -= 1
 
-        return corresponding_texts, corresponding_characters
+        return text_ops, pronunciation_ops
 
-    def calculate_edit_distance(
+    def compute_alignment_details(
             self,
-            _text: List[str],
-            substring: List[str],
-            target: List[str],
-            del_cost: float = 1,
-            ins_cost: float = 3,
-            sub_cost: float = 6
-    ) -> LdRes:
-        m, n = len(substring), len(target)
-        dp: List[List[float]] = self.initialize_dp_matrix(m, n, del_cost, ins_cost)
-        edit_distance: float = self.calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost)
-        corresponding_texts: List[Union[str, Tuple[str, str]]]
-        corresponding_characters: List[Union[str, Tuple[str, str]]]
-        corresponding_texts, corresponding_characters = self.backtrack_corresponding(dp, _text, substring, target)
+            text_tokens: List[str],
+            source_pronunciation: List[str],
+            target_pronunciation: List[str],
+            del_cost: int = 1,
+            ins_cost: int = 3,
+            sub_cost: int = 6
+    ) -> AlignmentDetails:
+        rows, cols = len(source_pronunciation), len(target_pronunciation)
+        dp = self.create_dp_table(rows, cols, del_cost, ins_cost)
+        edit_dist = self.fill_dp_table(dp, source_pronunciation, target_pronunciation, del_cost, ins_cost, sub_cost)
+        text_ops, pronunciation_ops = self.trace_alignment_path(dp, text_tokens, source_pronunciation,
+                                                                target_pronunciation)
 
-        text_res: List[str] = []
-        pinyin_res: List[str] = []
-        for x, y in zip(corresponding_characters, corresponding_texts):
-            if type(x) is str:
-                pinyin_res.append(x)
-                text_res.append(y)
-            elif type(x) is tuple and x[0] == '' and x[1] != '':
-                pinyin_res.append(x[1])
-                text_res.append(y[1])
-            elif type(x) is tuple and x[0] != '' and x[1] != '':
-                pinyin_res.append(x[0])
-                text_res.append(y[0])
+        aligned_text = []
+        aligned_pronunciation = []
+        for p_op, t_op in zip(pronunciation_ops, text_ops):
+            if isinstance(p_op, str):
+                aligned_pronunciation.append(p_op)
+                aligned_text.append(t_op)
+            elif p_op[0] == '' and p_op[1] != '':
+                aligned_pronunciation.append(p_op[1])
+                aligned_text.append(t_op[1])
+            elif p_op[0] != '' and p_op[1] != '':
+                aligned_pronunciation.append(p_op[0])
+                aligned_text.append(t_op[0])
 
-        return LdRes(edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters)
+        return AlignmentDetails(edit_dist, aligned_text, aligned_pronunciation, text_ops, pronunciation_ops)
 
 
 if __name__ == "__main__":
-    lyric_pinyin_list = "xi nan dou bu jie bie ren zen me shuo wo dou bu jie yi wo ai bu ai ni ri jiu jian ren xin"
-    text_content = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心"
-    lab_content = "xi lan ren zen ha ha shuo we dou bu jie"
+    g2p_pinyin = "xi nan dou bu jie bie ren zen me shuo wo dou bu jie yi wo ai bu ai ni ri jiu jian ren xin".split()
+    reference_text = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心".split()
+    input_pinyin = "xi lan ren zen ha ha shuo we dou bu jie".split()
 
-    LD_Match = LevenshteinDistance()
-    text, res, t_step, p_step = LD_Match.find_similar_substrings(lab_content.split(" "), lyric_pinyin_list.split(" "),
-                                                                 text_list=text_content.split(" "), sub_tip=True)
+    aligner = LyricAligner()
+    text, pinyin, text_diff, pinyin_diff = aligner.align_sequences(
+        input_pinyin, g2p_pinyin, text_tokens=reference_text, show_substitutions=True
+    )
 
-    print("asr_labc:", lab_content)
-    print("text_res:", text)
-    print("pyin_res:", res)
-    print("text_step:", t_step)
-    print("pyin_step:", p_step)
-    print()
+    print("Input Pinyin:", " ".join(input_pinyin))
+    print("Aligned Text:", text)
+    print("Aligned Pinyin:", pinyin)
+    print("Text Operations:", text_diff)
+    print("Pinyin Operations:", pinyin_diff)

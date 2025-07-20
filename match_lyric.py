@@ -6,7 +6,7 @@ import click
 import pypinyin
 
 from ZhG2p import ZhG2p, split_string
-from common import LevenshteinDistance
+from common import LyricAligner
 
 
 def get_lyrics_from_txt(file_path):
@@ -44,7 +44,7 @@ def match_lyric(
     os.makedirs(json_folder, exist_ok=True)
 
     g2p = ZhG2p('mandarin')
-    ld_match = LevenshteinDistance()
+    ld_match = LyricAligner()
     lyric_dict = {}
 
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
@@ -70,12 +70,13 @@ def match_lyric(
             pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
             g2p_res = g2p.convert_list(asr_list).split(' ')
             if len(g2p_res) > 0:
-                match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(g2p_res,
-                                                                                                    pinyin_list,
-                                                                                                    text_list=text_list,
-                                                                                                    del_tip=True,
-                                                                                                    ins_tip=True,
-                                                                                                    sub_tip=True)
+                match_text, match_pinyin, text_step, pinyin_step = ld_match.align_sequences(
+                    search_pronunciation=g2p_res,
+                    reference_pronunciation=pinyin_list,
+                    text_tokens=text_list,
+                    show_substitutions=True,
+                    show_insertions=True,
+                    show_deletions=True)
                 asr_rect_list = []
                 asr_rect_diff = []
                 for _asr, _text, _g2p in zip(asr_list, match_text.split(" "),

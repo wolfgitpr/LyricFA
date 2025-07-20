@@ -5,7 +5,7 @@ import os
 import click
 
 from ZhG2p import split_string
-from common import LevenshteinDistance
+from common import LyricAligner
 
 
 def get_lyrics_from_txt(file_path):
@@ -46,28 +46,17 @@ def generate_json(json_path, _text, _pinyin):
 @click.option('--lab_folder', metavar='Chinese characters or pinyin separated by spaces obtained from ASR (*.lab).')
 @click.option('--json_folder', metavar='Folder for outputting JSON files.')
 @click.option('--diff_threshold', default=0, metavar='Only display different results with n words or more.')
-@click.option('--syllable_neglect',
-              metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--consonant_neglect',
-              metavar='Ignore consonant errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--vowel_neglect',
-              metavar='Ignore vowel errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 def match_lyric(
         lyric_folder: str = None,
         lab_folder: str = None,
         json_folder: str = None,
-        diff_threshold: int = 0,
-        syllable_neglect: bool = False,
-        consonant_neglect: bool = False,
-        vowel_neglect: bool = False
+        diff_threshold: int = 0
 ):
     assert lyric_folder is not None and lab_folder is not None, 'Missing lyrics or lab files.'
     assert json_folder is not None, 'JSON output folder not entered.'
     os.makedirs(json_folder, exist_ok=True)
 
-    ld_match = LevenshteinDistance(load_yaml=True, syllable=syllable_neglect, consonant=consonant_neglect,
-                                   vowel=vowel_neglect)
-    ld_match.load_phoneme_dict()
+    aligner = LyricAligner()
     lyric_dict = {}
 
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
@@ -94,11 +83,12 @@ def match_lyric(
             word_list = lyric_dict[lyric_name]['words']
             lab_word = split_string(lab_content.replace("’", "'").lower())
             if len(lab_word) > 0:
-                match_text, match_kana, text_step, kana_step = ld_match.find_similar_substrings(lab_word, word_list,
-                                                                                                text_list=text_list,
-                                                                                                del_tip=True,
-                                                                                                ins_tip=True,
-                                                                                                sub_tip=True)
+                match_text, match_kana, text_step, kana_step = aligner.align_sequences(search_pronunciation=lab_word,
+                                                                                       reference_pronunciation=word_list,
+                                                                                       text_tokens=text_list,
+                                                                                       show_substitutions=True,
+                                                                                       show_insertions=True,
+                                                                                       show_deletions=True)
                 if lab_content != match_kana and len(kana_step.split(" ")) > diff_threshold:
                     print("lab_name:", lab_name)
                     print("asr_labc:", " ".join(lab_word))
