@@ -75,8 +75,8 @@ def match_lyric(
                 match_text, match_pinyin, text_step, pinyin_step = ld_match.align_sequences(
                     search_text=input_text,
                     search_pronunciation=g2p_res,
+                    reference_text=text_list,
                     reference_pronunciation=pinyin_list,
-                    text_tokens=text_list,
                     show_substitutions=True,
                     show_insertions=True,
                     show_deletions=True)

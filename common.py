@@ -18,60 +18,63 @@ class AlignmentDetails:
         self.pronunciation_operations = pronunciation_operations
 
 
-def longestCommonSubsequence(str1, str2) -> int:
-    m, n = len(str1), len(str2)
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if str1[i - 1] == str2[j - 1]:
-                dp[i][j] = 1 + dp[i - 1][j - 1]
-            else:
-                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+def longestCommonSubsequence(seq1: List[str], seq2: List[str]) -> int:
+    len1, len2 = len(seq1), len(seq2)
+    dp_table = [[0] * (len2 + 1) for _ in range(len1 + 1)]
 
-    return dp[-1][-1]
+    for i in range(1, len1 + 1):
+        for j in range(1, len2 + 1):
+            if seq1[i - 1] == seq2[j - 1]:
+                dp_table[i][j] = 1 + dp_table[i - 1][j - 1]
+            else:
+                dp_table[i][j] = max(dp_table[i - 1][j], dp_table[i][j - 1])
+
+    return dp_table[-1][-1]
 
 
 class LyricAligner:
     @staticmethod
-    def find_longest_match(
-            text_tokens: List[str],
-            pronunciation_sequence: List[str],
+    def find_best_match_window(
+            reference_text_tokens: List[str],
+            reference_pronunciation: List[str],
             search_pronunciation: List[str],
             search_text: List[str]
     ) -> AlignmentResult:
-        max_match_len = 0
+        max_match_length = 0
         best_start_idx = -1
 
-        for start_idx in range(len(pronunciation_sequence) - len(search_pronunciation)):
-            current_match_len = longestCommonSubsequence(search_pronunciation,
-                                                         pronunciation_sequence[
-                                                         start_idx:start_idx + len(search_pronunciation)])
+        for start_idx in range(len(reference_pronunciation) - len(search_pronunciation)):
+            current_match_length = longestCommonSubsequence(
+                search_pronunciation,
+                reference_pronunciation[start_idx:start_idx + len(search_pronunciation)]
+            )
 
-            if current_match_len >= max_match_len:
-                max_match_len = current_match_len
+            if current_match_length >= max_match_length:
+                max_match_length = current_match_length
                 best_start_idx = start_idx
 
-        # Ensure we have a valid match window
-        max_match_len = min(len(pronunciation_sequence) - best_start_idx, len(search_pronunciation))
-        if max_match_len < len(search_pronunciation):
-            best_start_idx = max(0, best_start_idx - (len(search_pronunciation) - max_match_len))
-            max_match_len = min(len(pronunciation_sequence) - best_start_idx, len(search_pronunciation))
+        max_match_length = min(len(reference_pronunciation) - best_start_idx, len(search_pronunciation))
+        if max_match_length < len(search_pronunciation):
+            best_start_idx = max(0, best_start_idx - (len(search_pronunciation) - max_match_length))
+            max_match_length = min(len(reference_pronunciation) - best_start_idx, len(search_pronunciation))
 
         if best_start_idx == -1:
             best_start_idx = 0
-            max_match_len = len(search_pronunciation)
+            max_match_length = len(search_pronunciation)
 
         text_diffs = []
         pronunciation_diffs = []
-        for pos in range(len(search_pronunciation)):
-            if pos < max_match_len and pronunciation_sequence[best_start_idx + pos] != search_pronunciation[pos]:
-                text_diffs.append(f"({search_text[pos]}->{text_tokens[best_start_idx + pos]}, {pos})")
+        for position in range(len(search_pronunciation)):
+            if (position < max_match_length and
+                    reference_pronunciation[best_start_idx + position] != search_pronunciation[position]):
+                text_diffs.append(
+                    f"({search_text[position]}->{reference_text_tokens[best_start_idx + position]}, {position})")
                 pronunciation_diffs.append(
-                    f"({search_pronunciation[pos]}->{pronunciation_sequence[best_start_idx + pos]}, {pos})")
+                    f"({search_pronunciation[position]}->{reference_pronunciation[best_start_idx + position]}, {position})")
 
         return AlignmentResult(
             start_idx=best_start_idx,
-            end_idx=best_start_idx + max_match_len,
+            end_idx=best_start_idx + max_match_length,
             text_changes=text_diffs,
             pronunciation_changes=pronunciation_diffs
         )
@@ -81,17 +84,19 @@ class LyricAligner:
             search_text: List[str],
             search_pronunciation: List[str],
             reference_pronunciation: List[str],
-            text_tokens: Optional[List[str]] = None,
+            reference_text: Optional[List[str]] = None,
             show_deletions: bool = False,
             show_insertions: bool = False,
             show_substitutions: bool = False
     ) -> Tuple[str, str, str, str]:
-        if text_tokens is None:
-            text_tokens = reference_pronunciation
+        if reference_text is None:
+            reference_text = reference_pronunciation
         assert len(search_pronunciation) <= len(reference_pronunciation)
-        assert len(text_tokens) == len(reference_pronunciation)
+        assert len(reference_text) == len(reference_pronunciation)
 
-        initial_match = self.find_longest_match(text_tokens, reference_pronunciation, search_pronunciation, search_text)
+        initial_match = self.find_best_match_window(
+            reference_text, reference_pronunciation, search_pronunciation, search_text
+        )
         matched_pronunciation = reference_pronunciation[initial_match.start_idx:initial_match.end_idx]
 
         # Check if initial match is acceptable
@@ -100,7 +105,7 @@ class LyricAligner:
                 search_pronunciation[-1]) and len(
             initial_match.text_changes) <= 1:
             return (
-                " ".join(text_tokens[initial_match.start_idx:initial_match.end_idx]),
+                " ".join(reference_text[initial_match.start_idx:initial_match.end_idx]),
                 " ".join(reference_pronunciation[initial_match.start_idx:initial_match.end_idx]),
                 " ".join(initial_match.text_changes),
                 " ".join(initial_match.pronunciation_changes)
@@ -117,13 +122,13 @@ class LyricAligner:
 
             for start_idx in range(start_range, end_range):
                 window_pronunciation = reference_pronunciation[start_idx:start_idx + window]
-                window_text = text_tokens[start_idx:start_idx + window]
+                window_text = reference_text[start_idx:start_idx + window]
 
                 alignment_candidates.append(self.compute_alignment_details(
                     window_text, window_pronunciation, search_pronunciation, search_text))
 
         # Select best candidate
-        alignment_candidates.sort(key=lambda x: x.edit_distance)
+        alignment_candidates.sort(key=lambda candidate: candidate.edit_distance)
         best_alignment = alignment_candidates[0]
 
         return (
@@ -142,109 +147,111 @@ class LyricAligner:
             show_sub: bool
     ) -> str:
         formatted_ops = []
-        for pos, op in enumerate(operations):
+        for position, op in enumerate(operations):
             if isinstance(op, tuple):
                 original, replacement = op
                 if original and not replacement and show_del:
-                    formatted_ops.append(f"({original}->, {pos})")
+                    formatted_ops.append(f"({original}->, {position})")
                 elif not original and replacement and show_ins:
-                    formatted_ops.append(f"(->{replacement}, {pos})")
+                    formatted_ops.append(f"(->{replacement}, {position})")
                 elif original and replacement and show_sub:
-                    formatted_ops.append(f"({replacement}->{original}, {pos})")
+                    formatted_ops.append(f"({replacement}->{original}, {position})")
         return " ".join(formatted_ops)
 
     @staticmethod
     def create_dp_table(
             rows: int,
             cols: int,
-            del_cost: int,
-            ins_cost: int
+            deletion_cost: int,
+            insertion_cost: int
     ) -> List[List[int]]:
-        dp = [[0] * (cols + 1) for _ in range(rows + 1)]
+        dp_table = [[0] * (cols + 1) for _ in range(rows + 1)]
 
         for i in range(rows + 1):
-            dp[i][0] = i * del_cost
-
+            dp_table[i][0] = i * deletion_cost
         for j in range(cols + 1):
-            dp[0][j] = j * ins_cost
+            dp_table[0][j] = j * insertion_cost
 
-        return dp
+        return dp_table
 
     @staticmethod
     def fill_dp_table(
-            dp: List[List[int]],
-            source: List[str],
-            target: List[str],
-            del_cost: int,
-            ins_cost: int,
-            sub_cost: int
+            dp_table: List[List[int]],
+            source_seq: List[str],
+            target_seq: List[str],
+            deletion_cost: int,
+            insertion_cost: int,
+            substitution_cost: int
     ) -> int:
-        rows, cols = len(source), len(target)
+        rows, cols = len(source_seq), len(target_seq)
 
         for i in range(1, rows + 1):
             for j in range(1, cols + 1):
-                if source[i - 1] == target[j - 1]:
-                    dp[i][j] = dp[i - 1][j - 1]
+                if source_seq[i - 1] == target_seq[j - 1]:
+                    dp_table[i][j] = dp_table[i - 1][j - 1]
                 else:
-                    dp[i][j] = min(
-                        dp[i - 1][j - 1] + sub_cost,
-                        dp[i][j - 1] + ins_cost,
-                        dp[i - 1][j] + del_cost
+                    dp_table[i][j] = min(
+                        dp_table[i - 1][j - 1] + substitution_cost,
+                        dp_table[i][j - 1] + insertion_cost,
+                        dp_table[i - 1][j] + deletion_cost
                     )
 
-        return dp[rows][cols]
+        return dp_table[rows][cols]
 
     @staticmethod
     def trace_alignment_path(
-            dp: List[List[float]],
-            text_tokens: List[str],
+            dp_table: List[List[float]],
+            reference_text_tokens: List[str],
             source_pronunciation: List[str],
             target_pronunciation: List[str],
             search_text: List[str]
     ) -> Tuple[List[Union[str, Tuple[str, str]]], List[Union[str, Tuple[str, str]]]]:
-        text_ops = []
-        pronunciation_ops = []
+        text_operations = []
+        pronunciation_operations = []
         i, j = len(source_pronunciation), len(target_pronunciation)
 
         while i > 0 and j > 0:
             if source_pronunciation[i - 1] == target_pronunciation[j - 1]:
-                pronunciation_ops.insert(0, target_pronunciation[j - 1])
-                text_ops.insert(0, text_tokens[i - 1])
+                pronunciation_operations.insert(0, target_pronunciation[j - 1])
+                text_operations.insert(0, reference_text_tokens[i - 1])
                 i -= 1
                 j -= 1
             else:
-                min_val = min(dp[i - 1][j - 1], dp[i][j - 1], dp[i - 1][j])
-                if dp[i - 1][j - 1] == min_val:
-                    pronunciation_ops.insert(0, (source_pronunciation[i - 1], target_pronunciation[j - 1]))
-                    text_ops.insert(0, (text_tokens[i - 1], search_text[j - 1]))
+                min_val = min(dp_table[i - 1][j - 1], dp_table[i][j - 1], dp_table[i - 1][j])
+                if dp_table[i - 1][j - 1] == min_val:
+                    pronunciation_operations.insert(0, (source_pronunciation[i - 1], target_pronunciation[j - 1]))
+                    text_operations.insert(0, (reference_text_tokens[i - 1], search_text[j - 1]))
                     i -= 1
                     j -= 1
-                elif dp[i][j - 1] == min_val:
-                    pronunciation_ops.insert(0, ('', target_pronunciation[j - 1]))
-                    text_ops.insert(0, ('', search_text[j - 1]))
+                elif dp_table[i][j - 1] == min_val:
+                    pronunciation_operations.insert(0, ('', target_pronunciation[j - 1]))
+                    text_operations.insert(0, ('', search_text[j - 1]))
                     j -= 1
                 else:
-                    pronunciation_ops.insert(0, (source_pronunciation[i - 1], ''))
-                    text_ops.insert(0, (text_tokens[i - 1], ''))
+                    pronunciation_operations.insert(0, (source_pronunciation[i - 1], ''))
+                    text_operations.insert(0, (reference_text_tokens[i - 1], ''))
                     i -= 1
 
-        return text_ops, pronunciation_ops
+        return text_operations, pronunciation_operations
 
     def compute_alignment_details(
             self,
-            text_tokens: List[str],
+            reference_text_tokens: List[str],
             source_pronunciation: List[str],
             target_pronunciation: List[str],
             search_text: List[str],
-            del_cost: int = 1,
-            ins_cost: int = 3,
-            sub_cost: int = 3
+            deletion_cost: int = 1,
+            insertion_cost: int = 3,
+            substitution_cost: int = 3
     ) -> AlignmentDetails:
         rows, cols = len(source_pronunciation), len(target_pronunciation)
-        dp = self.create_dp_table(rows, cols, del_cost, ins_cost)
-        edit_dist = self.fill_dp_table(dp, source_pronunciation, target_pronunciation, del_cost, ins_cost, sub_cost)
-        text_ops, pronunciation_ops = self.trace_alignment_path(dp, text_tokens, source_pronunciation,
-                                                                target_pronunciation, search_text)
+        dp_table = self.create_dp_table(rows, cols, deletion_cost, insertion_cost)
+        edit_distance = self.fill_dp_table(
+            dp_table, source_pronunciation, target_pronunciation, deletion_cost, insertion_cost, substitution_cost
+        )
+        text_ops, pronunciation_ops = self.trace_alignment_path(
+            dp_table, reference_text_tokens, source_pronunciation, target_pronunciation, search_text
+        )
 
         aligned_text = []
         aligned_pronunciation = []
@@ -258,22 +265,22 @@ class LyricAligner:
             elif p_op[0] != '' and p_op[1] != '':
                 aligned_pronunciation.append(p_op[0])
                 aligned_text.append(t_op[0])
-
-        return AlignmentDetails(edit_dist, aligned_text, aligned_pronunciation, text_ops, pronunciation_ops)
+        return AlignmentDetails(edit_distance, aligned_text, aligned_pronunciation, text_ops, pronunciation_ops)
 
 
 if __name__ == "__main__":
+    # 示例用法
     g2p_pinyin = "xi nan dou bu jie bie ren zen me shuo wo dou bu jie yi wo ai bu ai ni ri jiu jian ren xin".split()
-    reference_text = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心".split()
+    lyrics = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心".split()
     input_pinyin = "xi lan ren zen ha ha shuo we dou bu jie".split()
 
     aligner = LyricAligner()
     text, pinyin, text_diff, pinyin_diff = aligner.align_sequences(
-        input_pinyin, input_pinyin, g2p_pinyin, text_tokens=reference_text, show_substitutions=True
+        input_pinyin, input_pinyin, g2p_pinyin, reference_text=lyrics, show_substitutions=True
     )
 
-    print("Input Pinyin:", " ".join(input_pinyin))
-    print("Aligned Text:", text)
-    print("Aligned Pinyin:", pinyin)
-    print("Text Operations:", text_diff)
-    print("Pinyin Operations:", pinyin_diff)
+    print("输入拼音:", " ".join(input_pinyin))
+    print("对齐文本:", text)
+    print("对齐拼音:", pinyin)
+    print("文本操作:", text_diff)
+    print("拼音操作:", pinyin_diff)

@@ -87,9 +87,10 @@ def match_lyric(
             lab_res = mecab_tagger.parse(lab_content.replace(" ", "")).split('\n')[:-2]
             lab_kana = [x.split('\t')[1] for x in lab_res]
             if len(lab_kana) > 0:
-                match_text, match_kana, text_step, kana_step = aligner.align_sequences(search_pronunciation=lab_kana,
+                match_text, match_kana, text_step, kana_step = aligner.align_sequences(search_text=lab_kana,
+                                                                                       search_pronunciation=lab_kana,
+                                                                                       reference_text=text_list,
                                                                                        reference_pronunciation=kana_list,
-                                                                                       text_tokens=text_list,
                                                                                        show_substitutions=True,
                                                                                        show_insertions=True,
                                                                                        show_deletions=True)

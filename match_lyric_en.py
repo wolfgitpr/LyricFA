@@ -83,9 +83,9 @@ def match_lyric(
             word_list = lyric_dict[lyric_name]['words']
             lab_word = split_string(lab_content.replace("’", "'").lower())
             if len(lab_word) > 0:
-                match_text, match_kana, text_step, kana_step = aligner.align_sequences(search_pronunciation=lab_word,
+                match_text, match_kana, text_step, kana_step = aligner.align_sequences(search_text=lab_word,
+                                                                                       search_pronunciation=lab_word,
                                                                                        reference_pronunciation=word_list,
-                                                                                       text_tokens=text_list,
                                                                                        show_substitutions=True,
                                                                                        show_insertions=True,
                                                                                        show_deletions=True)
