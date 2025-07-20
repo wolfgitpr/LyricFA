@@ -18,6 +18,19 @@ class AlignmentDetails:
         self.pronunciation_operations = pronunciation_operations
 
 
+def longestCommonSubsequence(str1, str2) -> int:
+    m, n = len(str1), len(str2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if str1[i - 1] == str2[j - 1]:
+                dp[i][j] = 1 + dp[i - 1][j - 1]
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+
+    return dp[-1][-1]
+
+
 class LyricAligner:
     @staticmethod
     def find_longest_match(
@@ -29,15 +42,12 @@ class LyricAligner:
         max_match_len = 0
         best_start_idx = -1
 
-        for start_idx in range(len(pronunciation_sequence)):
-            current_match_len = 0
-            for offset in range(min(len(search_pronunciation), len(pronunciation_sequence) - start_idx)):
-                if pronunciation_sequence[start_idx + offset] == search_pronunciation[offset]:
-                    current_match_len += 1
-                else:
-                    break
+        for start_idx in range(len(pronunciation_sequence) - len(search_pronunciation)):
+            current_match_len = longestCommonSubsequence(search_pronunciation,
+                                                         pronunciation_sequence[
+                                                         start_idx:start_idx + len(search_pronunciation)])
 
-            if current_match_len > max_match_len:
+            if current_match_len >= max_match_len:
                 max_match_len = current_match_len
                 best_start_idx = start_idx
 
