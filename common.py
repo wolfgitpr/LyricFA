@@ -1,6 +1,14 @@
 from typing import List, Tuple, Union, Optional
 
 
+class BestMatchResult:
+    def __init__(self, start_index: int, end_index: int, text_diff: List[str], pinyin_diff: List[str]):
+        self.start_index = start_index
+        self.end_index = end_index
+        self.text_diff = text_diff
+        self.pinyin_diff = pinyin_diff
+
+
 class LdRes:
     def __init__(self, edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters):
         self.edit_distance = edit_distance
@@ -16,7 +24,7 @@ class LevenshteinDistance:
             text_list: List[str],
             source_list: List[str],
             sub_list: List[str]
-    ) -> Tuple[int, int, List[str], List[str]]:
+    ) -> BestMatchResult:
         max_match_length: int = 0
         max_match_index: int = -1
 
@@ -44,11 +52,16 @@ class LevenshteinDistance:
         text_diff: List[str] = []
         pinyin_diff: List[str] = []
         for k in range(0, len(sub_list)):
-            if not source_list[max_match_index + k] == sub_list[k]:
+            if k < max_match_length and not source_list[max_match_index + k] == sub_list[k]:
                 text_diff.append(f"({text_list[max_match_index + k]}->{sub_list[k]}, {k})")
                 pinyin_diff.append(f"({source_list[max_match_index + k]}->{sub_list[k]}, {k})")
 
-        return max_match_index, max_match_index + max_match_length, text_diff, pinyin_diff
+        return BestMatchResult(
+            start_index=max_match_index,
+            end_index=max_match_index + max_match_length,
+            text_diff=text_diff,
+            pinyin_diff=pinyin_diff
+        )
 
     def find_similar_substrings(
             self,
@@ -64,18 +77,24 @@ class LevenshteinDistance:
         assert len(target) <= len(
             pinyin_list), "The length of target must be less than or equal to the length of pinyin_list."
         assert len(text_list) == len(pinyin_list), "The length of text_list and pinyin_list must be the same."
-        pos = self.find_best_matches(text_list, pinyin_list, target)
-        slider_res: List[str] = pinyin_list[pos[0]:pos[1]]
-        if len(slider_res) > 0 and (slider_res[0] == target[0] or slider_res[-1] == target[-1]) and len(pos[2]) <= 1:
-            return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), " ".join(pos[2]), " ".join(
-                pos[3])
+        match_result = self.find_best_matches(text_list, pinyin_list, target)
+        slider_res: List[str] = pinyin_list[match_result.start_index:match_result.end_index]
+        if len(slider_res) > 0 and (slider_res[0] == target[0] or slider_res[-1] == target[-1]) and len(
+                match_result.text_diff) <= 1:
+            return (
+                " ".join(text_list[match_result.start_index:match_result.end_index]),
+                " ".join(pinyin_list[match_result.start_index:match_result.end_index]),
+                " ".join(match_result.text_diff),
+                " ".join(match_result.pinyin_diff)
+            )
 
         ld_results: List[LdRes] = []
 
         # 扩展匹配范围，最多扩展10个字符
         for sub_length in range(len(target), min(len(target) + 10, len(pinyin_list) + 1)):
             # 滑动窗口，以预匹配的范围为中心，向两边扩展10个字符
-            for i in range(max(0, pos[0] - 10), min(pos[1] + 10, len(pinyin_list) - sub_length + 1)):
+            for i in range(max(0, match_result.start_index - 10),
+                           min(match_result.end_index + 10, len(pinyin_list) - sub_length + 1)):
                 _pinyin_list = pinyin_list[i:i + sub_length]
                 _text_list = text_list[i:i + sub_length]
 
