@@ -32,29 +32,19 @@ def generate_json(json_path, _text, _pinyin):
 @click.option('--asr_rectify', type=bool, default=False,
               metavar='Trust the result of ASR (if the result of ASR hits another candidate pronunciation of a '
                       'polyphonic character, it is considered a g2p error).')
-@click.option('--syllable_neglect', type=bool,
-              metavar='Ignore syllable errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--consonant_neglect', type=bool,
-              metavar='Ignore consonant errors with similar pronunciations and refer to the Near_systolic.yaml file.')
-@click.option('--vowel_neglect', type=bool,
-              metavar='Ignore vowel errors with similar pronunciations and refer to the Near_systolic.yaml file.')
 def match_lyric(
         lyric_folder: str = None,
         lab_folder: str = None,
         json_folder: str = None,
         diff_threshold: int = 0,
-        asr_rectify: bool = False,
-        syllable_neglect: bool = False,
-        consonant_neglect: bool = False,
-        vowel_neglect: bool = False
+        asr_rectify: bool = False
 ):
     assert lyric_folder is not None and lab_folder is not None, 'Missing lyrics or lab files.'
     assert json_folder is not None, 'JSON output folder not entered.'
     os.makedirs(json_folder, exist_ok=True)
 
     g2p = ZhG2p('mandarin')
-    ld_match = LevenshteinDistance(load_yaml=True, syllable=syllable_neglect, consonant=consonant_neglect,
-                                   vowel=vowel_neglect)
+    ld_match = LevenshteinDistance()
     lyric_dict = {}
 
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
@@ -78,10 +68,14 @@ def match_lyric(
                 asr_list = f.read().strip("\n").split(" ")
             text_list = lyric_dict[lyric_name]['text_list']
             pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
-            if len(g2p.convert_list(asr_list).split(' ')) > 0:
-                match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(
-                    g2p.convert_list(asr_list).split(' '), pinyin_list,
-                    text_list=text_list, del_tip=True, ins_tip=True, sub_tip=True)
+            g2p_res = g2p.convert_list(asr_list).split(' ')
+            if len(g2p_res) > 0:
+                match_text, match_pinyin, text_step, pinyin_step = ld_match.find_similar_substrings(g2p_res,
+                                                                                                    pinyin_list,
+                                                                                                    text_list=text_list,
+                                                                                                    del_tip=True,
+                                                                                                    ins_tip=True,
+                                                                                                    sub_tip=True)
                 asr_rect_list = []
                 asr_rect_diff = []
                 for _asr, _text, _g2p in zip(asr_list, match_text.split(" "),

@@ -1,7 +1,5 @@
 import time
 
-import yaml
-
 
 def timer(func):
     def wrapper(*args, **kwargs):
@@ -15,65 +13,11 @@ def timer(func):
 
 
 class LevenshteinDistance:
-    def __init__(self, load_yaml=False, syllable=False, consonant=False, vowel=False):
-        self.g2p = False
-        self.syllable = syllable
-        self.consonant = consonant
-        self.vowel = vowel
+    def __init__(self):
         self.phoneme_dict = {}
-        self.syllable_dict = {}
-        self.consonant_dict = {}
-        self.vowel_dict = {}
-        if load_yaml:
-            self.load_yaml()
 
-    def load_yaml(self):
-        with open('Near_syllable.yaml', 'r') as file:
-            data = yaml.safe_load(file)
-        self.load_phoneme_dict(data['dictionary_path'])
-        self.syllable_dict = data['syllable']
-        self.consonant_dict = data['consonant']
-        self.vowel_dict = data['vowel']
-
-    def load_phoneme_dict(self, dict_path=None):
-        if dict_path is not None:
-            self.g2p = True
-            with open(dict_path, 'r') as file:
-                data = file.readlines()
-            for line in data:
-                k, v = line.strip("\n").split("\t")
-                self.phoneme_dict[k] = v.split(" ")
-
-    def match_pinyin(self, raw, target):
-        if self.g2p:
-            if raw == target:
-                return True
-            elif self.syllable and self.syllable_dict.get(raw, raw) == target:
-                return True
-            elif self.consonant:
-                raw = self.phoneme_dict.get(raw, raw)
-                target = self.phoneme_dict.get(target, target)
-                if len(raw) > 1 and len(target) > 1:
-                    if self.consonant_dict.get(raw[0], raw[0]) == target[0] and raw[1] == target[1]:
-                        return True
-                elif len(raw) == 1 and len(target) == 1:
-                    if raw[0] == target[0]:
-                        return True
-            elif self.vowel:
-                raw = self.phoneme_dict.get(raw, raw)
-                target = self.phoneme_dict.get(target, target)
-                if len(raw) > 1 and len(target) > 1:
-                    if raw[0] == target[0] and self.vowel_dict.get(raw[1], raw[1]) == target[1]:
-                        return True
-                elif len(raw) == 1 and len(target) == 1:
-                    if raw[0] == target[0]:
-                        return True
-        else:
-            if raw == target:
-                return True
-        return False
-
-    def find_best_matches(self, text_list, source_list, sub_list):
+    @staticmethod
+    def find_best_matches(text_list, source_list, sub_list):
         max_match_length = 0
         max_match_index = -1
 
@@ -81,7 +25,7 @@ class LevenshteinDistance:
             match_length = 0
             j = 0
             while i + j < len(source_list) and j < len(sub_list):
-                if self.match_pinyin(source_list[i + j], sub_list[j]):
+                if source_list[i + j] == sub_list[j]:
                     match_length += 1
                 j += 1
 
@@ -101,7 +45,7 @@ class LevenshteinDistance:
         text_diff = []
         pinyin_diff = []
         for k in range(0, len(sub_list)):
-            if not self.match_pinyin(source_list[max_match_index + k], sub_list[k]):
+            if not source_list[max_match_index + k] == sub_list[k]:
                 text_diff.append(f"({text_list[max_match_index + k]}->{sub_list[k]}, {k})")
                 pinyin_diff.append(f"({source_list[max_match_index + k]}->{sub_list[k]}, {k})")
 
@@ -161,12 +105,13 @@ class LevenshteinDistance:
 
         return dp
 
-    def calculate_edit_distance_dp(self, dp, substring, target, del_cost, ins_cost, sub_cost):
+    @staticmethod
+    def calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost):
         m, n = len(substring), len(target)
 
         for i in range(1, m + 1):
             for j in range(1, n + 1):
-                if self.match_pinyin(substring[i - 1], target[j - 1]):
+                if substring[i - 1] == target[j - 1]:
                     dp[i][j] = dp[i - 1][j - 1]
                 else:
                     dp[i][j] = min(
@@ -177,13 +122,14 @@ class LevenshteinDistance:
 
         return dp[m][n]
 
-    def backtrack_corresponding(self, dp, _text, substring, target):
+    @staticmethod
+    def backtrack_corresponding(dp, _text, substring, target):
         corresponding_texts = []
         corresponding_characters = []
         i, j = len(substring), len(target)
 
         while i > 0 and j > 0:
-            if self.match_pinyin(substring[i - 1], target[j - 1]):
+            if substring[i - 1] == target[j - 1]:
                 corresponding_characters.insert(0, target[j - 1])
                 corresponding_texts.insert(0, _text[i - 1])
                 i -= 1
@@ -237,7 +183,7 @@ if __name__ == "__main__":
     text_content = "希 男 都 不 解 别 人 怎 么 说 我 都 不 解 一 我 爱 不 爱 你 日 久 见 人 心"
     lab_content = "xi lan ren zen ha ha shuo we dou bu jie"
 
-    LD_Match = LevenshteinDistance(consonant=True)
+    LD_Match = LevenshteinDistance()
     text, res, t_step, p_step = LD_Match.find_similar_substrings(lab_content.split(" "), lyric_pinyin_list.split(" "),
                                                                  text_list=text_content.split(" "), sub_tip=True)
 
