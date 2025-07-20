@@ -54,9 +54,9 @@ class LyricAligner:
         pronunciation_diffs = []
         for pos in range(len(search_pronunciation)):
             if pos < max_match_len and pronunciation_sequence[best_start_idx + pos] != search_pronunciation[pos]:
-                text_diffs.append(f"({text_tokens[best_start_idx + pos]}->{search_pronunciation[pos]}, {pos})")
+                text_diffs.append(f"({search_pronunciation[pos]}->{text_tokens[best_start_idx + pos]}, {pos})")
                 pronunciation_diffs.append(
-                    f"({pronunciation_sequence[best_start_idx + pos]}->{search_pronunciation[pos]}, {pos})")
+                    f"({search_pronunciation[pos]}->{pronunciation_sequence[best_start_idx + pos]}, {pos})")
 
         return AlignmentResult(
             start_idx=best_start_idx,
@@ -138,7 +138,7 @@ class LyricAligner:
                 elif not original and replacement and show_ins:
                     formatted_ops.append(f"(->{replacement}, {pos})")
                 elif original and replacement and show_sub:
-                    formatted_ops.append(f"({original}->{replacement}, {pos})")
+                    formatted_ops.append(f"({replacement}->{original}, {pos})")
         return " ".join(formatted_ops)
 
     @staticmethod
