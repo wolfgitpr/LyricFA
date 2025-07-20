@@ -65,12 +65,15 @@ def match_lyric(
         lyric_name = lyric_name.rsplit("_", 1)[0]
         if lyric_name in lyric_dict.keys():
             with open(lab_path, 'r', encoding='utf-8') as f:
-                asr_list = f.read().strip("\n").split(" ")
+                asr_list = f.read().strip("\n")
             text_list = lyric_dict[lyric_name]['text_list']
             pinyin_list = lyric_dict[lyric_name]['pinyin'].split(' ')
-            g2p_res = g2p.convert_list(asr_list).split(' ')
+
+            input_text = split_string(asr_list)
+            g2p_res = g2p.convert_list(input_text).split(' ')
             if len(g2p_res) > 0:
                 match_text, match_pinyin, text_step, pinyin_step = ld_match.align_sequences(
+                    search_text=input_text,
                     search_pronunciation=g2p_res,
                     reference_pronunciation=pinyin_list,
                     text_tokens=text_list,
@@ -94,7 +97,8 @@ def match_lyric(
                 if asr_rectify:
                     match_pinyin = " ".join(asr_rect_list)
 
-                if asr_list != match_pinyin.split(" ") and len(pinyin_step.split(" ")) > diff_threshold:
+                if asr_list != match_pinyin.split(" ") and len(
+                        [x for x in pinyin_step.split(" ") if x]) > diff_threshold:
                     print("lab_name:", lab_name)
                     print("asr_lab:", " ".join(asr_list))
                     print("text_res:", match_text)

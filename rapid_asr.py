@@ -6,8 +6,6 @@ import click
 import librosa
 from rapid_paraformer import RapidParaformer
 
-from ZhG2p import ZhG2p, split_string
-
 
 @click.command(help='Asr outputs lab annotations to match the original lyrics.')
 @click.option('--model_config',
@@ -24,7 +22,6 @@ def rapid_asr(
     os.makedirs(lab_folder, exist_ok=True)
 
     paraformer = RapidParaformer(model_config)
-    g2p = ZhG2p("mandarin")
 
     print("Started!")
     print("---------------")
@@ -44,7 +41,7 @@ def rapid_asr(
                 result = result[0]
                 print(f"{wav_path}\n{result}\n")
                 with open(out_lab_path, 'w', encoding='utf-8') as f:
-                    f.write(g2p.convert(result))
+                    f.write(result)
             else:
                 print(f"{wav_path}:error\n")
         else:
