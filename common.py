@@ -1,10 +1,16 @@
-from typing import List, Tuple, Dict, Union, Optional
+from typing import List, Tuple, Union, Optional
+
+
+class LdRes:
+    def __init__(self, edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters):
+        self.edit_distance = edit_distance
+        self.text_res = text_res
+        self.pinyin_res = pinyin_res
+        self.corresponding_texts = corresponding_texts
+        self.corresponding_characters = corresponding_characters
 
 
 class LevenshteinDistance:
-    def __init__(self) -> None:
-        self.phoneme_dict: Dict = {}
-
     @staticmethod
     def find_best_matches(
             text_list: List[str],
@@ -64,7 +70,7 @@ class LevenshteinDistance:
             return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), " ".join(pos[2]), " ".join(
                 pos[3])
 
-        similar_substrings = []
+        ld_results: List[LdRes] = []
 
         # 扩展匹配范围，最多扩展10个字符
         for sub_length in range(len(target), min(len(target) + 10, len(pinyin_list) + 1)):
@@ -73,13 +79,14 @@ class LevenshteinDistance:
                 _pinyin_list = pinyin_list[i:i + sub_length]
                 _text_list = text_list[i:i + sub_length]
 
-                similar_substrings.append(self.calculate_edit_distance(_text_list, _pinyin_list, target))
+                ld_results.append(self.calculate_edit_distance(_text_list, _pinyin_list, target))
 
-        similar_substrings.sort(key=lambda _x: _x[0])
-        _, _text_res, _pinyin_res, _text_step, _pinyin_step = similar_substrings[0]
+        ld_results.sort(key=lambda _x: _x.edit_distance)
+        min_edit_distance_res = ld_results[0]
 
-        return " ".join(_text_res), " ".join(_pinyin_res), self.fill_step_out(_text_step, del_tip, ins_tip, sub_tip), \
-            self.fill_step_out(_pinyin_step, del_tip, ins_tip, sub_tip)
+        return (" ".join(min_edit_distance_res.text_res), " ".join(min_edit_distance_res.pinyin_res),
+                self.fill_step_out(min_edit_distance_res.corresponding_texts, del_tip, ins_tip, sub_tip),
+                self.fill_step_out(min_edit_distance_res.corresponding_characters, del_tip, ins_tip, sub_tip))
 
     @staticmethod
     def fill_step_out(
@@ -187,7 +194,7 @@ class LevenshteinDistance:
             del_cost: float = 1,
             ins_cost: float = 3,
             sub_cost: float = 6
-    ) -> Tuple[float, List[str], List[str], List[Union[str, Tuple[str, str]]], List[Union[str, Tuple[str, str]]]]:
+    ) -> LdRes:
         m, n = len(substring), len(target)
         dp: List[List[float]] = self.initialize_dp_matrix(m, n, del_cost, ins_cost)
         edit_distance: float = self.calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost)
@@ -208,7 +215,7 @@ class LevenshteinDistance:
                 pinyin_res.append(x[0])
                 text_res.append(y[0])
 
-        return edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters
+        return LdRes(edit_distance, text_res, pinyin_res, corresponding_texts, corresponding_characters)
 
 
 if __name__ == "__main__":
