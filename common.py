@@ -1,29 +1,22 @@
-import time
-
-
-def timer(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print('函数 {} 运行时间为：{}'.format(func.__name__, end_time - start_time))
-        return result
-
-    return wrapper
+from typing import List, Tuple, Dict, Union, Optional
 
 
 class LevenshteinDistance:
-    def __init__(self):
-        self.phoneme_dict = {}
+    def __init__(self) -> None:
+        self.phoneme_dict: Dict = {}
 
     @staticmethod
-    def find_best_matches(text_list, source_list, sub_list):
-        max_match_length = 0
-        max_match_index = -1
+    def find_best_matches(
+            text_list: List[str],
+            source_list: List[str],
+            sub_list: List[str]
+    ) -> Tuple[int, int, List[str], List[str]]:
+        max_match_length: int = 0
+        max_match_index: int = -1
 
         for i in range(len(source_list)):
-            match_length = 0
-            j = 0
+            match_length: int = 0
+            j: int = 0
             while i + j < len(source_list) and j < len(sub_list):
                 if source_list[i + j] == sub_list[j]:
                     match_length += 1
@@ -42,8 +35,8 @@ class LevenshteinDistance:
             max_match_index = 0
             max_match_length = len(sub_list)
 
-        text_diff = []
-        pinyin_diff = []
+        text_diff: List[str] = []
+        pinyin_diff: List[str] = []
         for k in range(0, len(sub_list)):
             if not source_list[max_match_index + k] == sub_list[k]:
                 text_diff.append(f"({text_list[max_match_index + k]}->{sub_list[k]}, {k})")
@@ -51,14 +44,22 @@ class LevenshteinDistance:
 
         return max_match_index, max_match_index + max_match_length, text_diff, pinyin_diff
 
-    def find_similar_substrings(self, target, pinyin_list, text_list=None, del_tip=False, ins_tip=False, sub_tip=False):
+    def find_similar_substrings(
+            self,
+            target: List[str],
+            pinyin_list: List[str],
+            text_list: Optional[List[str]] = None,
+            del_tip: bool = False,
+            ins_tip: bool = False,
+            sub_tip: bool = False
+    ) -> Tuple[str, str, str, str]:
         if text_list is None:
             text_list = pinyin_list
         assert len(target) <= len(
             pinyin_list), "The length of target must be less than or equal to the length of pinyin_list."
         assert len(text_list) == len(pinyin_list), "The length of text_list and pinyin_list must be the same."
         pos = self.find_best_matches(text_list, pinyin_list, target)
-        slider_res = pinyin_list[pos[0]:pos[1]]
+        slider_res: List[str] = pinyin_list[pos[0]:pos[1]]
         if len(slider_res) > 0 and (slider_res[0] == target[0] or slider_res[-1] == target[-1]) and len(pos[2]) <= 1:
             return " ".join(text_list[pos[0]:pos[1]]), " ".join(pinyin_list[pos[0]:pos[1]]), " ".join(pos[2]), " ".join(
                 pos[3])
@@ -81,8 +82,13 @@ class LevenshteinDistance:
             self.fill_step_out(_pinyin_step, del_tip, ins_tip, sub_tip)
 
     @staticmethod
-    def fill_step_out(_step, del_tip, ins_tip, sub_tip):
-        output = []
+    def fill_step_out(
+            _step: List[Union[str, Tuple[str, str]]],
+            del_tip: bool,
+            ins_tip: bool,
+            sub_tip: bool
+    ) -> str:
+        output: List[str] = []
         for idx, x in enumerate(_step):
             if type(x) is tuple:
                 if x[0] != '' and x[1] == '' and del_tip:
@@ -94,8 +100,13 @@ class LevenshteinDistance:
         return " ".join(output)
 
     @staticmethod
-    def initialize_dp_matrix(m, n, del_cost, ins_cost):
-        dp = [[0] * (n + 1) for _ in range(m + 1)]
+    def initialize_dp_matrix(
+            m: int,
+            n: int,
+            del_cost: float,
+            ins_cost: float
+    ) -> List[List[float]]:
+        dp: List[List[float]] = [[0] * (n + 1) for _ in range(m + 1)]
 
         for i in range(m + 1):
             dp[i][0] = i * del_cost  # 删除操作的权重
@@ -106,7 +117,14 @@ class LevenshteinDistance:
         return dp
 
     @staticmethod
-    def calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost):
+    def calculate_edit_distance_dp(
+            dp: List[List[float]],
+            substring: List[str],
+            target: List[str],
+            del_cost: float,
+            ins_cost: float,
+            sub_cost: float
+    ) -> float:
         m, n = len(substring), len(target)
 
         for i in range(1, m + 1):
@@ -123,9 +141,14 @@ class LevenshteinDistance:
         return dp[m][n]
 
     @staticmethod
-    def backtrack_corresponding(dp, _text, substring, target):
-        corresponding_texts = []
-        corresponding_characters = []
+    def backtrack_corresponding(
+            dp: List[List[float]],
+            _text: List[str],
+            substring: List[str],
+            target: List[str]
+    ) -> Tuple[List[Union[str, Tuple[str, str]]], List[Union[str, Tuple[str, str]]]]:
+        corresponding_texts: List[Union[str, Tuple[str, str]]] = []
+        corresponding_characters: List[Union[str, Tuple[str, str]]] = []
         i, j = len(substring), len(target)
 
         while i > 0 and j > 0:
@@ -156,14 +179,24 @@ class LevenshteinDistance:
 
         return corresponding_texts, corresponding_characters
 
-    def calculate_edit_distance(self, _text, substring, target, del_cost=1, ins_cost=3, sub_cost=6):
+    def calculate_edit_distance(
+            self,
+            _text: List[str],
+            substring: List[str],
+            target: List[str],
+            del_cost: float = 1,
+            ins_cost: float = 3,
+            sub_cost: float = 6
+    ) -> Tuple[float, List[str], List[str], List[Union[str, Tuple[str, str]]], List[Union[str, Tuple[str, str]]]]:
         m, n = len(substring), len(target)
-        dp = self.initialize_dp_matrix(m, n, del_cost, ins_cost)
-        edit_distance = self.calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost)
+        dp: List[List[float]] = self.initialize_dp_matrix(m, n, del_cost, ins_cost)
+        edit_distance: float = self.calculate_edit_distance_dp(dp, substring, target, del_cost, ins_cost, sub_cost)
+        corresponding_texts: List[Union[str, Tuple[str, str]]]
+        corresponding_characters: List[Union[str, Tuple[str, str]]]
         corresponding_texts, corresponding_characters = self.backtrack_corresponding(dp, _text, substring, target)
 
-        text_res = []
-        pinyin_res = []
+        text_res: List[str] = []
+        pinyin_res: List[str] = []
         for x, y in zip(corresponding_characters, corresponding_texts):
             if type(x) is str:
                 pinyin_res.append(x)
