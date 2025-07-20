@@ -6,13 +6,7 @@ import click
 import pypinyin
 
 from ZhG2p import ZhG2p, split_string
-from common import LyricAligner
-
-
-def get_lyrics_from_txt(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        text = file.read()
-    return text
+from common import LyricAligner, get_lyrics_from_file
 
 
 def generate_json(json_path, _text, _pinyin):
@@ -50,7 +44,7 @@ def match_lyric(
     lyric_paths = glob.glob(f'{lyric_folder}/*.txt')
     for lyric_path in lyric_paths:
         lyric_name = os.path.splitext(os.path.basename(lyric_path))[0]
-        text_list = split_string(get_lyrics_from_txt(lyric_path))
+        text_list = split_string(get_lyrics_from_file(lyric_path))
         lyric_dict[lyric_name] = {'text_list': text_list, 'pinyin': g2p.convert_list(text_list)}
 
     file_num = 0

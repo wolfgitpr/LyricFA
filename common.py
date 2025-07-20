@@ -1,6 +1,12 @@
 from typing import List, Tuple, Union, Optional
 
 
+def get_lyrics_from_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        data = file.read()
+        return data.strip().replace('\r\n', '')
+
+
 class AlignmentResult:
     def __init__(self, start_idx: int, end_idx: int, text_changes: List[str], pronunciation_changes: List[str]):
         self.start_idx = start_idx
@@ -10,7 +16,8 @@ class AlignmentResult:
 
 
 class AlignmentDetails:
-    def __init__(self, edit_distance, aligned_text, aligned_pronunciation, text_operations, pronunciation_operations):
+    def __init__(self, edit_distance: int, aligned_text, aligned_pronunciation, text_operations,
+                 pronunciation_operations):
         self.edit_distance = edit_distance
         self.aligned_text = aligned_text
         self.aligned_pronunciation = aligned_pronunciation
