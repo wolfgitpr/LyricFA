@@ -1,9 +1,8 @@
-rapid_paraformer
+funasr
 click
 pyyaml
 pypinyin
 librosa<0.10.0
 numpy==1.23.5
-onnxruntime
 scipy
 typeguard==2.13.3
