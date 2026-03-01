@@ -26,10 +26,9 @@ class LanguageProcessor(ABC):
 
 class ChineseProcessor(LanguageProcessor):
     _CHINESE_CHAR_RANGE: str = r'[\u4e00-\u9fa5]'
-    _ALLOWED_CHARS: str = rf'{_CHINESE_CHAR_RANGE}a-zA-Z0-9\s，。！？、；："\'-'
 
     def __init__(self) -> None:
-        super().__init__('zh', self._ALLOWED_CHARS)
+        super().__init__('zh', self._CHINESE_CHAR_RANGE)
         self.g2p: ZhG2p = ZhG2p('mandarin')
 
     def split_text(self, text: str) -> List[str]:

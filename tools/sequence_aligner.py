@@ -184,6 +184,30 @@ class SequenceAligner:
         window_size = min(input_len + extra_window, int(input_len * max_window_scale))
         return min(window_size, ref_len)
 
+    def compute_edit_distance(self, seq1: List[str], seq2: List[str]) -> int:
+        len1, len2 = len(seq1), len(seq2)
+        if len1 < len2:
+            seq1, seq2 = seq2, seq1
+            len1, len2 = len2, len1
+
+        prev = [j * self.insertion_cost for j in range(len2 + 1)]
+        curr = [0] * (len2 + 1)
+
+        for i in range(1, len1 + 1):
+            curr[0] = i * self.deletion_cost
+            s1 = seq1[i - 1]
+            for j in range(1, len2 + 1):
+                s2 = seq2[j - 1]
+                if s1 == s2:
+                    curr[j] = prev[j - 1]
+                else:
+                    sub = prev[j - 1] + self.substitution_cost
+                    dele = prev[j] + self.deletion_cost
+                    ins = curr[j - 1] + self.insertion_cost
+                    curr[j] = min(sub, dele, ins)
+            prev, curr = curr, prev
+        return prev[len2]
+
     def _scan_windows(
             self,
             input_seq: List[str],
@@ -192,8 +216,7 @@ class SequenceAligner:
             input_len: int,
     ) -> Tuple[int, float]:
         ref_len = len(reference_seq)
-        best_start = -1
-        min_approx_dist = float('inf')
+        candidates = []  # (approx_dist, start)
         input_freq = Counter(input_seq)
 
         for start in range(ref_len - window_size + 1):
@@ -210,14 +233,31 @@ class SequenceAligner:
 
             lcs_len = self.compute_lcs_length(input_seq, window)
             approx_dist = len(input_seq) + len(window) - 2 * lcs_len
+            candidates.append((approx_dist, start))
 
-            if approx_dist < min_approx_dist:
-                min_approx_dist = approx_dist
+        if not candidates:
+            return -1, float('inf')
+
+        candidates.sort(key=lambda x: x[0])
+
+        total = len(candidates)
+        num_to_keep = max(10, int(0.3 * total))
+        if num_to_keep > total:
+            num_to_keep = total
+
+        best_start = -1
+        min_edit_dist = float('inf')
+
+        for approx_dist, start in candidates[:num_to_keep]:
+            window = reference_seq[start:start + window_size]
+            edit_dist = self.compute_edit_distance(input_seq, window)
+            if edit_dist < min_edit_dist:
+                min_edit_dist = edit_dist
                 best_start = start
-                if approx_dist == 0:
+                if edit_dist == 0:
                     break
 
-        return best_start, min_approx_dist
+        return best_start, min_edit_dist
 
     def _build_match_from_alignment(
             self,
